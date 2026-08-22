@@ -2,10 +2,20 @@
 // Landing — order-first: greeting + search + category chips + popular grid,
 // then brand story, hours, testimonials, booking, rewards
 import Base from '../layouts/Base.astro';
-import Hero from '../components/Hero.astro';
 import MenuCard from '../components/MenuCard.astro';
 import Testimonials from '../components/Testimonials.astro';
+import Hero from '../components/Hero.astro';
 import { menu, categories } from '../data/menu.js';
+import { Image } from 'astro:assets';
+import storyImg from '../assets/story.webp';
+import coffee1 from '../assets/products/coffee-1.jpg';
+import coffee2 from '../assets/products/coffee-2.jpg';
+import coffee3 from '../assets/products/coffee-3.jpg';
+import menuMatcha from '../assets/products/menu-matcha.jpg';
+import menu1 from '../assets/products/menu-1.jpg';
+import menu2 from '../assets/products/menu-2.jpg';
+import menu3 from '../assets/products/menu-3.jpg';
+import menuClassic from '../assets/products/menu-classic.jpg';
 
 const featuredIds = [
   'maghapon-latte',
@@ -18,27 +28,30 @@ const featuredIds = [
   'blueberry-soda',
 ];
 
-// Product photos for the featured items (mapped to sample assets)
+// Product photos for the featured items (optimized via astro:assets)
 const featuredImages = {
-  'maghapon-latte': '/images/products/coffee-1.jpg',
-  'sea-salt-cloud-latte': '/images/products/coffee-2.jpg',
-  'strawberry-matcha': '/images/products/menu-matcha.jpg',
-  'skrambol-latte': '/images/products/coffee-3.jpg',
-  'salted-cookie': '/images/products/menu-1.jpg',
-  'tapa-bowl': '/images/products/menu-2.jpg',
-  'bacon-carbonara': '/images/products/menu-3.jpg',
-  'blueberry-soda': '/images/products/menu-classic.jpg',
+  'maghapon-latte': coffee1,
+  'sea-salt-cloud-latte': coffee2,
+  'strawberry-matcha': menuMatcha,
+  'skrambol-latte': coffee3,
+  'salted-cookie': menu1,
+  'tapa-bowl': menu2,
+  'bacon-carbonara': menu3,
+  'blueberry-soda': menuClassic,
 };
 ---
 <Base>
-  <!-- Ordering surface — the first screen -->
+  <!-- Cinematic full-bleed hero -->
+  <Hero />
+
+  <!-- Ordering surface -->
   <section class="order-surface">
     <div class="container">
-      <h1 class="order-greeting"><span id="greeting">Good day</span>, what are you craving?</h1>
+      <h2 class="order-greeting"><span id="greeting">Good day</span>, what are you craving?</h2>
       <p class="order-sub">Order ahead for pickup — we'll have it ready when you arrive.</p>
 
       <div class="search-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <i class="ph ph-magnifying-glass" aria-hidden="true" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:20px;opacity:.55;pointer-events:none"></i>
         <input id="order-search" class="search-input" type="search" placeholder="Search coffee, matcha, rice bowls…" aria-label="Search the menu" />
       </div>
 
@@ -66,13 +79,11 @@ const featuredImages = {
     </div>
   </section>
 
-  <Hero compact />
-
   <!-- Brand story -->
   <section class="section" id="story">
     <div class="container story-grid">
       <div class="story-media" data-reveal>
-        <img src="/images/story.webp" alt="Coffee being prepared at Maghapon Café" width="800" height="1000" />
+        <Image src={storyImg} alt="Coffee being prepared at Maghapon Café" width={800} />
       </div>
       <div class="story-copy" data-reveal>
         <span class="eyebrow">The name</span>
@@ -226,11 +237,32 @@ const featuredImages = {
       if (btn && window.maghaponCart) window.maghaponCart.openConfig(btn.dataset.add);
     });
 
-    document.getElementById('loyalty-form').addEventListener('submit', (e) => {
+    // inline validation + error states (audit: no error states)
+    const loyaltyForm = document.getElementById('loyalty-form');
+    const loyaltyName = loyaltyForm.querySelector('input[name="name"]');
+    const loyaltyEmail = loyaltyForm.querySelector('input[name="email"]');
+    function setFieldError(input, msg) {
+      input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+      let err = input.nextElementSibling;
+      if (!err || !err.classList.contains('field-error')) {
+        err = document.createElement('div');
+        err.className = 'field-error';
+        input.insertAdjacentElement('afterend', err);
+      }
+      err.textContent = msg || '';
+      err.classList.toggle('show', !!msg);
+    }
+    loyaltyForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const f = e.target;
+      const name = f.name.value.trim();
+      const email = f.email.value.trim();
+      let ok = true;
+      if (name.length < 2) { setFieldError(loyaltyName, 'Please enter your name (at least 2 characters).'); ok = false; } else setFieldError(loyaltyName, '');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError(loyaltyEmail, 'Please enter a valid email address.'); ok = false; } else setFieldError(loyaltyEmail, '');
+      if (!ok) return;
       const rewards = JSON.parse(localStorage.getItem('maghapon-rewards') || '[]');
-      rewards.push({ name: f.name.value.trim(), email: f.email.value.trim(), createdAt: new Date().toISOString() });
+      rewards.push({ name, email, createdAt: new Date().toISOString() });
       saveRewards(rewards);
       document.getElementById('loyalty-success').textContent =
         "You're on the list! We'll email you when Maghapon Rewards launches.";

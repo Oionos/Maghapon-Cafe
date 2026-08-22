@@ -1,15 +1,16 @@
 ---
 // Hero — full-bleed coffee photo, dark overlay, cream text, brand tagline
-// compact: slim brand banner used below the ordering surface on the landing page
+import { Image } from 'astro:assets';
+import heroImg from '../assets/hero.webp';
+
 const { compact = false } = Astro.props;
 ---
 <section class={compact ? 'hero hero-compact' : 'hero'}>
-  <img
+  <Image
     class="hero-bg"
-    src="/images/hero.webp"
+    src={heroImg}
     alt="A dark, moody cup of Maghapon coffee"
-    width="1080"
-    height="1350"
+    priority
   />
   <div class="hero-overlay" aria-hidden="true"></div>
   <div class="container">

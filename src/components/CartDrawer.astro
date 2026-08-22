@@ -127,14 +127,14 @@ const menuJson = JSON.stringify({ menu, extras });
       </div>
       <fieldset class="opt-group">
         <legend>Size</legend>
-        <div class="opt-list">
+        <div class="opt-list opt-list--pills">
           ${item.variants
             .map(
               (v, i) => `
-              <label class="opt">
+              <label class="opt-pill">
                 <input type="radio" name="cfg-variant" value="${i}" ${i === 0 ? 'checked' : ''} />
                 <span>${esc(v.label || 'Regular')}</span>
-                <span class="opt-price">${formatPeso(v.price)}</span>
+                <span class="opt-pill-price">${formatPeso(v.price)}</span>
               </label>`
             )
             .join('')}
@@ -192,8 +192,8 @@ const menuJson = JSON.stringify({ menu, extras });
     if (cart.length === 0) {
       body.innerHTML = `
         <div class="drawer-empty">
-          <div class="big">☕</div>
-          <p>Your cart is empty.<br />Browse the menu and add something good.</p>
+          <div class="empty-owl" aria-hidden="true"><img src="/images/logo-owl.jpg" alt="" width="96" height="96" /></div>
+          <p>Your cart is empty — the counter is waiting.</p>
           <a class="btn btn-primary" href="/menu" data-cart-close>View menu</a>
         </div>`;
       return;

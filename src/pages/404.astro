@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Page not found — Maghapon Café" description="The page you’re looking for isn’t on the menu.">
+  <div class="container" style="padding: clamp(4rem,10vw,8rem) 0; text-align:center">
+    <div style="display:inline-flex;flex-direction:column;align-items:center;gap:1rem;max-width:520px">
+      <span class="eyebrow-pill">404 · Not on the menu</span>
+      <h1 style="font-size:clamp(2rem,5vw,3.2rem);margin:0">We couldn’t find that page.</h1>
+      <p style="opacity:.7;max-width:42ch;margin:0">The table you’re looking for isn’t set. Head back to the menu or home and we’ll keep the light on.</p>
+      <div style="display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem">
+        <a href="/" class="btn btn-primary">Back home <span class="btn-icon"><i class="ph ph-house" aria-hidden="true"></i></span></a>
+        <a href="/menu" class="btn btn-ghost">View the menu</a>
+      </div>
+    </div>
+  </div>
+</Base>

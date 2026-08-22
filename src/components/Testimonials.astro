@@ -12,8 +12,7 @@ import { TESTIMONIALS } from '../data/menu.js';
     <div class="grid grid-3">
       {TESTIMONIALS.map((t) => (
         <figure class="testimonial-card" data-reveal>
-          <div class="testimonial-stars" aria-label="5 out of 5 stars">★★★★★</div>
-          <blockquote>“{t.quote}”</blockquote>
+          <blockquote>{t.quote}</blockquote>
           <figcaption>— {t.drink}</figcaption>
         </figure>
       ))}

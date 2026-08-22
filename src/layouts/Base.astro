@@ -1,5 +1,5 @@
 ---
-// Base — shared layout: head, self-hosted fonts, app shell, global controls, footer, cart drawer
+ // Base — shared layout: head, self-hosted fonts, app shell, global controls, footer, cart drawer
 import '@fontsource/fraunces/400.css';
 import '@fontsource/fraunces/500.css';
 import '@fontsource/fraunces/600.css';
@@ -8,7 +8,9 @@ import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
-import '../styles/global.css';
+ import '../styles/global.css';
+import { Image } from 'astro:assets';
+import logoImg from '../assets/logo.webp';
 import CartDrawer from '../components/CartDrawer.astro';
 import CartPanel from '../components/CartPanel.astro';
 
@@ -34,9 +36,16 @@ const isOrders = path === '/my-orders';
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="/images/hero-coffee.jpg" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Geist for body — fixes Inter-everywhere generic (audit) while keeping Fraunces for display -->
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
     <div class="app-shell">
       <!-- Floating global controls: shop status + the single order trigger, top-right, all widths. -->
       {!isAdmin && (
@@ -46,7 +55,7 @@ const isOrders = path === '/my-orders';
             <span class="status-text">Checking hours…</span>
           </span>
           <button class="cart-btn order-toggle" id="cart-open" type="button" data-order-toggle aria-controls="cart-panel" aria-expanded="false" aria-label="Open order menu" title="Open order menu">
-            <span class="cart-icon" aria-hidden="true">☕</span>
+            <i class="ph ph-shopping-bag cart-icon" aria-hidden="true" style="font-size:18px"></i>
             <span class="cart-count" id="cart-count" hidden>0</span>
           </button>
         </div>
@@ -54,28 +63,28 @@ const isOrders = path === '/my-orders';
       <!-- Desktop nav rail (≥768px) -->
       <aside class="nav-rail" id="nav-rail" aria-label="Site">
         <a class="brand" href="/" aria-label="Maghapon Café home">
-          <img src="/images/logo.webp" alt="Maghapon Café logo" width="40" height="40" />
+          <Image src={logoImg} alt="Maghapon Café logo" width={40} priority />
           <span class="brand-copy">Maghapon Café<small>Caloocan · Metro Manila</small></span>
         </a>
         <nav class="rail-nav" id="rail-navigation" aria-label="Main">
           <a href="/" class={isHome ? 'is-active' : ''} aria-current={isHome ? 'page' : undefined} aria-label="Home" title="Home">
-            <svg class="rail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>
+            <i class="ph ph-house rail-icon" aria-hidden="true"></i>
             <span class="rail-label">Home</span>
           </a>
           <a href="/menu" class={isMenu ? 'is-active' : ''} aria-current={isMenu ? 'page' : undefined} aria-label="Order" title="Order">
-            <svg class="rail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12" /><path d="M7 3v5a5 5 0 0 0 10 0V3" /><path d="M12 13v8" /><path d="M8 21h8" /></svg>
+            <i class="ph ph-coffee rail-icon" aria-hidden="true"></i>
             <span class="rail-label">Order</span>
           </a>
           <a href="/booking" class={isBooking ? 'is-active' : ''} aria-current={isBooking ? 'page' : undefined} aria-label="Book a table" title="Book a table">
-            <svg class="rail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18" /><path d="M8 2v4" /><path d="M16 2v4" /></svg>
+            <i class="ph ph-calendar-blank rail-icon" aria-hidden="true"></i>
             <span class="rail-label">Book a table</span>
           </a>
           <a href="/my-orders" class={isOrders ? 'is-active' : ''} aria-current={isOrders ? 'page' : undefined} aria-label="My orders" title="My orders">
-            <svg class="rail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12l2 4v16H4V6l2-4Z" /><path d="M4 6h16" /><path d="M8 10h8" /><path d="M8 14h8" /></svg>
+            <i class="ph ph-shopping-bag rail-icon" aria-hidden="true"></i>
             <span class="rail-label">My orders</span>
           </a>
           <a href="/#rewards" aria-label="Rewards" title="Rewards">
-            <svg class="rail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 14.8 8.7 21 9.6l-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" /></svg>
+            <i class="ph ph-star rail-icon" aria-hidden="true"></i>
             <span class="rail-label">Rewards</span>
           </a>
         </nav>
@@ -101,7 +110,7 @@ const isOrders = path === '/my-orders';
         <!-- Mobile compact top bar (≤767px): brand lockup; admin keeps its status pill. -->
         <header class="mobile-topbar">
           <a class="brand" href="/" aria-label="Maghapon Café home">
-            <img src="/images/logo.webp" alt="Maghapon Café logo" width="32" height="32" />
+            <Image src={logoImg} alt="Maghapon Café logo" width={32} priority />
             <span class="brand-copy">Maghapon Café</span>
           </a>
           {isAdmin && (
@@ -114,7 +123,7 @@ const isOrders = path === '/my-orders';
           )}
         </header>
 
-        <main>
+        <main id="main-content">
           <slot />
         </main>
 
@@ -123,7 +132,7 @@ const isOrders = path === '/my-orders';
             <div class="footer-grid">
               <div>
                 <div class="footer-brand">
-                  <img src="/images/logo.webp" alt="" width="44" height="44" />
+                  <Image src={logoImg} alt="" width={44} loading="lazy" />
                   <strong>Maghapon Café</strong>
                 </div>
                 <p>
@@ -149,7 +158,7 @@ const isOrders = path === '/my-orders';
               </div>
             </div>
             <div class="footer-bottom">
-              <span>maghapon coffee house · @maghaponcafe</span>
+              <span>maghapon coffee house · @maghaponcafe · <a href="#" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Privacy</a> · <a href="#" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Terms</a></span>
               <span>© 2026 Maghapon Café</span>
             </div>
           </div>
@@ -162,20 +171,20 @@ const isOrders = path === '/my-orders';
     {!isAdmin && (
       <nav class="tab-bar" aria-label="Primary">
         <a href="/" class={isHome ? 'is-active' : ''} aria-current={isHome ? 'page' : undefined}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>
+          <i class="ph ph-house" aria-hidden="true" style="font-size:22px"></i>
           <span>Home</span>
         </a>
         <a href="/menu" class={isMenu ? 'is-active' : ''} aria-current={isMenu ? 'page' : undefined}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+          <i class="ph ph-coffee" aria-hidden="true" style="font-size:22px"></i>
           <span>Menu</span>
         </a>
         <a href="/booking" class={isBooking ? 'is-active' : ''} aria-current={isBooking ? 'page' : undefined}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18" /><path d="M8 2v4" /><path d="M16 2v4" /></svg>
+          <i class="ph ph-calendar-blank" aria-hidden="true" style="font-size:22px"></i>
           <span>Book</span>
         </a>
          <button class="tab-cart" id="cart-open-tab" type="button" data-order-toggle aria-controls="cart-drawer" aria-expanded="false" aria-label="Open order menu" title="Open order menu">
           <span class="tab-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5" /><circle cx="17" cy="20" r="1.5" /><path d="M3 3h2l2.5 12.5a1 1 0 0 0 1 .5h8.5a1 1 0 0 0 1-.8L20 8H6" /></svg>
+            <i class="ph ph-shopping-bag" aria-hidden="true" style="font-size:22px"></i>
             <span class="cart-count" id="cart-count-tab" data-cart-badge hidden>0</span>
           </span>
           <span>Cart</span>

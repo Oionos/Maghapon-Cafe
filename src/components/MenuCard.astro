@@ -3,7 +3,9 @@
 // compact: dense card for the landing ordering grid (price line + circle add button, no description)
 // reveal: false disables the scroll-reveal so first-screen cards render instantly
 // hidden: passthrough so the landing grid can pre-hide non-featured items
-// image: optional product photo URL (used in compact mode when available)
+// image: product photo — astro:assets metadata (rendered as optimized <Image>) or URL string
+import { Image } from 'astro:assets';
+
 const { item, interactive = true, compact = false, reveal = true, hidden = false, image = null } = Astro.props;
 const initial = item.name.charAt(0).toUpperCase();
 const searchText = (item.name + ' ' + item.description).toLowerCase();
@@ -11,6 +13,7 @@ const prices = item.variants.map((v) => v.price);
 const min = Math.min(...prices);
 const max = Math.max(...prices);
 const priceText = min === max ? `₱${min}` : `₱${min}–₱${max}`;
+const isMatcha = item.category === 'Matcha' || item.name.toLowerCase().includes('matcha');
 ---
 <article
   class={compact ? 'menu-card menu-card-compact' : 'menu-card'}
@@ -22,12 +25,17 @@ const priceText = min === max ? `₱${min}` : `₱${min}–₱${max}`;
 >
   <div class="menu-card-media" aria-hidden="true">
     {image ? (
-      <img src={image} alt={item.name} loading="lazy" class="menu-card-photo" />
+      typeof image === 'string' ? (
+        <img src={image} alt={item.name} loading="lazy" class="menu-card-photo" />
+      ) : (
+        <Image src={image} alt={item.name} width={640} loading="lazy" class="menu-card-photo" />
+      )
     ) : (
       <span class="menu-card-initial">{initial}</span>
     )}
     {item.limited && <span class="badge badge-limited">Limited</span>}
     {item.seasonal && <span class="badge badge-seasonal">Seasonal</span>}
+    {isMatcha && <span class="badge badge-matcha">Matcha</span>}
     {item.featured && <span class="badge badge-star">★</span>}
   </div>
   <div class="menu-card-body">
@@ -37,7 +45,7 @@ const priceText = min === max ? `₱${min}` : `₱${min}–₱${max}`;
       <div class="compact-row">
         <span class="compact-price">{priceText}</span>
         <button class="add-btn" type="button" data-add={item.id} aria-label={`Add ${item.name} to cart`}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <i class="ph ph-plus" aria-hidden="true" style="font-size:18px"></i>
         </button>
       </div>
     ) : (
@@ -51,7 +59,7 @@ const priceText = min === max ? `₱${min}` : `₱${min}–₱${max}`;
           ))}
         </div>
         {interactive ? (
-          <button class="btn btn-primary btn-sm" type="button" data-add={item.id}>Add to cart</button>
+          <button class="btn btn-primary btn-sm" type="button" data-add={item.id}>Add to cart <span class="btn-icon"><i class="ph ph-plus" aria-hidden="true"></i></span></button>
         ) : (
           <a class="btn btn-ghost btn-sm" href="/menu">On the menu</a>
         )}

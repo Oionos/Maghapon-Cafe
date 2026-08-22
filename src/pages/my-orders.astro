@@ -41,7 +41,8 @@ import Base from '../layouts/Base.astro';
       if (orders.length === 0) {
         list.innerHTML = `
           <div class="admin-empty">
-            <p>No orders yet — order something delicious.</p>
+            <div class="empty-owl" aria-hidden="true"><img src="/images/logo-owl.jpg" alt="" width="96" height="96" /></div>
+            <p>No orders yet — your next Maghapon is waiting.</p>
             <a class="btn btn-primary" href="/menu">Browse the menu</a>
           </div>`;
         return;

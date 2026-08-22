@@ -41,8 +41,8 @@
     if (cart.length === 0) {
       body.innerHTML = `
         <div class="cart-panel-empty">
-          <div class="big" aria-hidden="true">☕</div>
-          <p>Your cart is empty.</p>
+          <div class="empty-owl" aria-hidden="true"><img src="/images/logo-owl.jpg" alt="" width="96" height="96" /></div>
+          <p>Your cart is empty — the counter is waiting.</p>
           <a class="btn btn-primary" href="/menu">Browse the menu</a>
         </div>`;
       return;
