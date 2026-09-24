@@ -200,6 +200,25 @@ test('every icon referenced in src resolves to a sprite symbol', () => {
   assert.deepEqual(findSpriteSymbols(spriteSource(), ...iconNameRefs()), []);
 });
 
+// Plan:94 promised "7 <symbol>s, fill=\"currentColor\""; only the <path> was copied, so every glyph
+// painted purely because base.css says `.icon { fill: currentColor }`. The attribute now sits on each
+// <symbol> (a <use> shadow tree inherits from the referencing element, so the sprite root cannot
+// carry it), and this is what makes a regeneration that drops it loud instead of silent.
+// Deliberately no symbol-count assertion: an 8th glyph is legitimate, and frozen call-site counts are
+// the defect removed from iconNameRefs above. The guard's own <symbol id> pattern is used here so a
+// leading-attribute reorder that breaks it cannot pass either.
+test('every sprite symbol carries fill="currentColor"', () => {
+  const sprite = spriteSource();
+  const symbols = [...sprite.matchAll(/<symbol id="([\w-]+)"/g)];
+  assert.ok(symbols.length > 0, 'no <symbol id="..."> matched — the sprite shape changed');
+  // Anchored on the id attribute, not a bare `<symbol`: the file's own header comment mentions
+  // <symbol> in prose, and a predicate that reads prose as markup fails on a clean sprite.
+  const bare = [...sprite.matchAll(/<symbol id="[\w-]+"[^>]*>/g)]
+    .filter((m) => !/fill="currentColor"/.test(m[0]))
+    .map((m) => m[0]);
+  assert.deepEqual(bare, [], 'a <symbol> lost fill="currentColor"');
+});
+
 // The glob is what makes the title above true, so pin that it actually walks: src has 14 .astro
 // files today and Icon.astro is one of them. If the pattern ever matches nothing, the test would
 // read as a pass on an empty refs list.
