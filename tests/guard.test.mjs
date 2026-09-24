@@ -1,14 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  CSS_IMPORT_ORDER,
   findExternalOrigins,
+  findStyleImportMismatches,
   findUndefinedTokens,
   findIconFontUsage,
   findMissingRoutes,
   findSpriteSymbols,
   findTokenDrift,
+  walk,
   WEB_ROUTES,
 } from '../scripts/guard.mjs';
 
@@ -54,6 +58,53 @@ test('reports an undefined var usage with its site', () => {
 test('accepts var fallbacks and does not flag the fallback name', () => {
   const files = [{ path: 'src/styles/base.css', text: ':root{--a:1}\n.x{color:var(--a,2)}' }];
   assert.deepEqual(findUndefinedTokens(files), []);
+});
+
+// global.css's @import list IS the cascade: the 15 slices are contiguous ranges of the pre-split
+// file, so a missing, added or reordered import changes rendering with no compile error and no
+// other check can see it. Fixtures are synthetic (a, b, c) so a slice rename cannot silently
+// delete the test's subject, and the order under test is three long — a set comparison passes all
+// four mutations below except the reorder, which is the case that only an ordered compare catches.
+const ORDER = ['src/styles/a.css', 'src/styles/b.css', 'src/styles/c.css'];
+const asImports = (...paths) => paths
+  .map((p) => `@import url("./${p.slice('src/styles/'.length)}");`)
+  .join('\n');
+const withGlobal = (paths) => ['src/styles/global.css', ...paths];
+
+test('a deleted @import line is reported by its path', () => {
+  const problems = findStyleImportMismatches(
+    asImports('src/styles/a.css', 'src/styles/c.css'), withGlobal(ORDER), ORDER);
+  assert.ok(problems.some((p) => p.includes('src/styles/b.css')), problems.join(' | '));
+});
+
+test('an @import the ledger does not declare is reported by its path', () => {
+  const problems = findStyleImportMismatches(
+    asImports(...ORDER, 'src/styles/ghost.css'), withGlobal(ORDER), ORDER);
+  assert.ok(problems.some((p) => p.includes('src/styles/ghost.css')), problems.join(' | '));
+});
+
+test('reordering two adjacent slices is reported — membership alone would pass it', () => {
+  const problems = findStyleImportMismatches(
+    asImports('src/styles/a.css', 'src/styles/c.css', 'src/styles/b.css'),
+    withGlobal(ORDER), ORDER);
+  assert.equal(problems.length, 2, problems.join(' | '));
+  assert.ok(problems.every((p) => /slot [23]:/.test(p)), problems.join(' | '));
+});
+
+test('an orphan .css on disk is named as shipping nothing', () => {
+  const problems = findStyleImportMismatches(
+    asImports(...ORDER), withGlobal([...ORDER, 'src/styles/leftover.css']), ORDER);
+  assert.deepEqual(problems, ['orphan: src/styles/leftover.css is on disk but imported by nothing']);
+});
+
+test('the real global.css imports exactly CSS_IMPORT_ORDER, in order, with no orphan', () => {
+  assert.ok(CSS_IMPORT_ORDER.length > 1, 'CSS_IMPORT_ORDER must declare more than one slice');
+  assert.equal(new Set(CSS_IMPORT_ORDER).size, CSS_IMPORT_ORDER.length,
+    'CSS_IMPORT_ORDER has a duplicate entry');
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const onDisk = walk(`${root}src/styles`).map((p) => relative(root, p).split(sep).join('/'));
+  const text = readFileSync(`${root}src/styles/global.css`, 'utf8');
+  assert.deepEqual(findStyleImportMismatches(text, onDisk, CSS_IMPORT_ORDER), []);
 });
 
 test('flags the phosphor icon font by class', () => {

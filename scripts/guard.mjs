@@ -18,6 +18,28 @@ export const WEB_ROUTES = [
   'dist/my-orders/index.html',
 ];
 
+// The @import list in src/styles/global.css IS the cascade: slices are contiguous ranges of the
+// pre-split file, so an import that is missing, added, or reordered changes rendering with no
+// compile error. Order is compared, not just membership, because the 15 slices are interchangeable
+// to a set comparison and not at all interchangeable to the browser.
+export const CSS_IMPORT_ORDER = [
+  'src/styles/tokens/legacy-root.css',
+  'src/styles/base.css',
+  'src/styles/button.css',
+  'src/styles/shell.css',
+  'src/styles/hero.css',
+  'src/styles/story.css',
+  'src/styles/menu-card.css',
+  'src/styles/menu-page.css',
+  'src/styles/testimonials.css',
+  'src/styles/booking.css',
+  'src/styles/footer.css',
+  'src/styles/cart-drawer.css',
+  'src/styles/admin.css',
+  'src/styles/motion.css',
+  'src/styles/responsive.css',
+];
+
 export function walk(dir) {
   const out = [];
   if (!existsSync(dir)) return out;
@@ -87,6 +109,33 @@ export function findMissingRoutes(filePaths, expected) {
   return [...expected.filter((r) => !have.has(r)), ...extra];
 }
 
+// Nothing else in the guard reads global.css, so the declaration of what ships was invisible to it:
+// dropping an @import removed real CSS while every check stayed green, and an orphan slice on disk
+// fed findUndefinedTokens definitions that never ship — masking the class of bug check 3 exists for.
+// Returns human-readable problems; empty means the ledger, the entry point and the disk agree.
+export function findStyleImportMismatches(globalCssText, cssPaths, expected) {
+  const imported = [...globalCssText.matchAll(/@import\s+url\(\s*["']\.\/([^"']+?)["']\s*\)/g)]
+    .map((m) => `src/styles/${m[1]}`);
+  const problems = [];
+  if (imported.length !== expected.length) {
+    problems.push(`${imported.length} @import line(s), CSS_IMPORT_ORDER has ${expected.length}`);
+  }
+  expected.forEach((p, i) => {
+    if (imported[i] !== p) {
+      problems.push(`slot ${i + 1}: expected ${p}, found ${imported[i] || 'nothing'}`);
+    }
+  });
+  for (const p of imported) {
+    if (!expected.includes(p)) problems.push(`undeclared import: ${p} is not in CSS_IMPORT_ORDER`);
+  }
+  for (const p of cssPaths) {
+    if (p !== 'src/styles/global.css' && !expected.includes(p)) {
+      problems.push(`orphan: ${p} is on disk but imported by nothing`);
+    }
+  }
+  return problems;
+}
+
 // Sprite references resolve against the sprite's own <symbol> ids, so a typo'd `<use href>`
 // renders nothing at runtime and no other check notices. Spare glyphs are deliberately not
 // reported: an unused symbol in a 7-symbol sprite violates nothing (§3.5).
@@ -135,15 +184,20 @@ function main() {
   // chunk and the sprite itself come back as "unexpected route" failures on a good build.
   const pages = distFiles.filter((f) => f.path.endsWith('.html'));
   const spriteOk = distFiles.find((f) => f.path === 'dist/icons.svg');
-  // One entry per check. Task 4 appends `sprite symbols` and Task 7 appends `token drift`
-  // here; the count below is read off this array so it can never drift from what ran.
+  const cssPaths = cssFiles.map((f) => f.path);
+  // Only files the cascade actually imports can contribute a definition: counting an orphan slice
+  // on disk would certify a token that never ships, and that is the one mask check 3 exists for.
+  const shippingCss = cssFiles.filter((f) => CSS_IMPORT_ORDER.includes(f.path));
+  // One entry per check. Task 4 appends `sprite symbols`, the final review appends
+  // `style imports`, and Task 7 appends `token drift` below the array; the count printed at the
+  // end is read off this array so it can never drift from what actually ran.
   const CHECKS = [
     ['external origin', () => findExternalOrigins(distFiles)],
     ['icon font usage', () => findIconFontUsage(distFiles)],
     [
       'undefined token',
       () =>
-        findUndefinedTokens(cssFiles).map((u) => ({
+        findUndefinedTokens(shippingCss).map((u) => ({
           path: u.site.path,
           line: u.site.line,
           text: u.name,
@@ -163,6 +217,18 @@ function main() {
       () =>
         (spriteOk ? findSpriteSymbols(spriteOk.text, ...pages.map((p) => p.text)) : ['icons.svg'])
           .map((id) => ({ path: 'dist/icons.svg', line: 0, text: `no <symbol id="${id}">` })),
+    ],
+    [
+      'style imports',
+      () => {
+        // global.css is the only place the cascade order is declared, so if it is gone the order is
+        // undeclared — that is this check's failure to report, not a crash in it.
+        const entry = cssFiles.find((f) => f.path === 'src/styles/global.css');
+        const problems = entry
+          ? findStyleImportMismatches(entry.text, cssPaths, CSS_IMPORT_ORDER)
+          : ['entry point missing: no src/styles/global.css in src/styles/'];
+        return problems.map((text) => ({ path: 'src/styles/global.css', line: 0, text }));
+      },
     ],
   ];
   // The docs are gitignored, so a fresh clone must still build: guard the check on the file
