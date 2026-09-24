@@ -1,8 +1,6 @@
 ---
 // CartDrawer — slide-over cart: item config, cart list, checkout, confirmation
 // All cart math lives in src/lib/cart.js (pure functions); this file only renders.
-import { menu, extras } from '../data/menu.js';
-const menuJson = JSON.stringify({ menu, extras });
 ---
 <div class="drawer" id="cart-drawer" aria-hidden="true">
   <div class="drawer-scrim" data-cart-close></div>
@@ -15,7 +13,6 @@ const menuJson = JSON.stringify({ menu, extras });
   </div>
 </div>
 
-<script type="application/json" id="menu-data" set:html={menuJson}></script>
 
 <script>
   import {
