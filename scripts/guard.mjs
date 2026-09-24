@@ -166,19 +166,36 @@ function main() {
     ],
   ];
   // The docs are gitignored, so a fresh clone must still build: guard the check on the file
-  // rather than deleting it — a missing DESIGN.md must never read as zero drift.
-  if (existsSync(join(ROOT, 'DESIGN.md'))) {
+  // rather than deleting it — a missing DESIGN.md must never read as zero drift. The absence is
+  // announced on stdout, because a check count that quietly shrinks from 6 to 5 is how this
+  // tripwire stopped being one. The count in the summary line comes from CHECKS.length, so the
+  // note above it is what explains a 5-check run.
+  const designMdPath = join(ROOT, 'DESIGN.md');
+  if (existsSync(designMdPath)) {
     CHECKS.push([
       'token drift',
-      () =>
-        findTokenDrift(readFileSync(join(ROOT, 'DESIGN.md'), 'utf8'), cssFiles.filter(
+      () => {
+        // Matched by exact path, so a rename of the token file yields [] — and an empty code set
+        // would read as "every doc hex is doc-only drift", or as a clean pass if the doc were
+        // empty too. Crash on it instead of going green.
+        const tokenCss = cssFiles.filter(
           (f) => f.path === 'src/styles/tokens/legacy-root.css'
-        )).map((d) => ({
+        );
+        if (tokenCss.length === 0) {
+          throw new Error(
+            'token drift: src/styles/tokens/legacy-root.css missing from src/styles/ — ' +
+            'the drift check has no code side to compare and cannot report honestly'
+          );
+        }
+        return findTokenDrift(readFileSync(designMdPath, 'utf8'), tokenCss).map((d) => ({
           path: 'DESIGN.md',
           line: 0,
           text: d.onlyInDoc ? `doc-only ${d.onlyInDoc}` : `code-only ${d.onlyInCode}`,
-        })),
+        }));
+      },
     ]);
+  } else {
+    console.log('token drift skipped: no DESIGN.md (untracked)');
   }
   const failures = CHECKS.flatMap(([check, run]) => run().map((h) => [check, h]));
   failures.forEach(([check, h], i) => {
