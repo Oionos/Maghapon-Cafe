@@ -116,9 +116,10 @@ export function findMissingRoutes(filePaths, expected) {
   return [...expected.filter((r) => !have.has(r)), ...extra];
 }
 
-// Nothing else in the guard reads global.css, so the declaration of what ships was invisible to it:
-// dropping an @import removed real CSS while every check stayed green, and an orphan slice on disk
-// fed findUndefinedTokens definitions that never ship — masking the class of bug check 3 exists for.
+// Nothing else in the guard reads global.css, so the declaration of what ships was invisible to
+// it: dropping an @import removed real CSS while every check stayed green, and an orphan slice on
+// disk fed findUndefinedTokens definitions that never ship - masking the exact bug class that
+// check 3 exists to catch.
 // Returns human-readable problems; empty means the ledger, the entry point and the disk agree.
 export function findStyleImportMismatches(globalCssText, cssPaths, expected) {
   const imported = [...globalCssText.matchAll(/@import\s+url\(\s*["']\.\/([^"']+?)["']\s*\)/g)]
