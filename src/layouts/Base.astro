@@ -4,10 +4,7 @@ import '@fontsource/fraunces/400.css';
 import '@fontsource/fraunces/500.css';
 import '@fontsource/fraunces/600.css';
 import '@fontsource/fraunces/700.css';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/600.css';
-import '@fontsource/inter/700.css';
+import '@fontsource-variable/geist';
  import '../styles/global.css';
 import { Image } from 'astro:assets';
 import logoImg from '../assets/logo.webp';
@@ -39,11 +36,6 @@ const isOrders = path === '/my-orders';
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/images/hero-coffee.jpg" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Geist for body — fixes Inter-everywhere generic (audit) while keeping Fraunces for display -->
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to content</a>

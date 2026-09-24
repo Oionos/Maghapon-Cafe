@@ -60,6 +60,10 @@ function lineOf(text, index) {
   return text.slice(0, index).split('\n').length;
 }
 
+// Dead-token note: `--font-mono: 'Geist Mono', …` was deleted from tokens/legacy-root.css in
+// Task 5. Nothing in src/ ever referenced it, and its family came only from the Google Fonts
+// <link> the same task removed, so re-adding it would put a second untruth in the token file.
+// Do not restore it without also self-hosting a mono face and proving a consumer exists.
 export function findUndefinedTokens(cssFiles) {
   const defined = new Set();
   const used = [];

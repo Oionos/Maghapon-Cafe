@@ -16,8 +16,7 @@
   --line-strong: rgba(42, 18, 6, 0.18);
   --line-light: rgba(253, 251, 247, 0.12);
   --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Geist', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-body: 'Geist Variable', system-ui, sans-serif;
   --radius: 2rem;
   --radius-sm: 12px;
   --radius-xs: 10px;
