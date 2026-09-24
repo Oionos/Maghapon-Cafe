@@ -2,6 +2,7 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import * as orderStore from '../src/lib/store/orderStore.js';
 import * as menuSource from '../src/lib/store/menuSource.js';
+import { menu, extras } from '../src/data/menu.js';
 
 const KEYS = ['maghapon-cart', 'maghapon-orders', 'maghapon-bookings', 'maghapon-rewards'];
 
@@ -53,9 +54,16 @@ test('updateOrderStatus patches one order and reports whether it existed', () =>
   assert.equal(orderStore.updateOrderStatus('MAG-0000', 'Served'), false);
 });
 
-test('seedOrders only fills an empty pipeline', () => {
+test('seedOrders persists the whole array it is given', () => {
   orderStore.seedOrders([{ id: 'MAG-1111', status: 'Received', items: [], total: 0 }]);
   assert.equal(orderStore.listOrders().length, 1);
+  // The "only seed an empty pipeline" rule lives in admin.astro's getOrders(), which this test
+  // never loads; seedOrders itself writes unconditionally, so a second call replaces the store.
+  orderStore.seedOrders([
+    { id: 'MAG-2222', status: 'Received', items: [], total: 0 },
+    { id: 'MAG-3333', status: 'Received', items: [], total: 0 },
+  ]);
+  assert.equal(orderStore.listOrders().length, 2);
 });
 
 test('bookings unshift with a BK- id and the same field order', () => {
@@ -69,13 +77,15 @@ test('bookings unshift with a BK- id and the same field order', () => {
   assert.equal(JSON.parse(store.get('maghapon-bookings'))[0].id, b.id);
 });
 
-test('rewards push after existing entries', () => {
-  orderStore.placeBooking({ name: 'A', phone: '1', date: 'd', time: 't', guests: 2,
-    eventType: 'TCG' });
-  const e = orderStore.joinRewardsList({ name: 'Andy', email: 'a@b.co' });
+test('rewards join pushes after existing entries', () => {
+  const first = orderStore.joinRewardsList({ name: 'Andy', email: 'a@b.co' });
+  const second = orderStore.joinRewardsList({ name: 'Bea', email: 'b@b.co' });
   const list = JSON.parse(store.get('maghapon-rewards'));
-  assert.equal(list.length, 1);
-  assert.deepEqual(list[0], e);
+  // Rewards push (the signup list reads oldest-first) while bookings unshift (admin shows the
+  // newest first); two distinguishable joins are what pins which of the two this surface uses.
+  assert.equal(list.length, 2);
+  assert.deepEqual(list[0], first);
+  assert.deepEqual(list[1], second);
 });
 
 test('the cart is a mirrored draft, not derived state', () => {
@@ -104,12 +114,15 @@ test('no key name changed, so an existing demo device keeps its data', () => {
   assert.deepEqual([...store.keys()].sort(), KEYS.slice().sort());
 });
 
-test('menuSource serves the same object the JSON embed uses', () => {
-  assert.ok(Array.isArray(menuSource.getMenu()));
-  // src/data/menu.js exports `menu` as a FLAT item list (each entry has `variants`), not
-  // `MenuCategory[]` with `items` as spec §9.1's signature claims — the seam returns it as-is.
+test('menuSource serves the exact arrays data/menu.js exports', () => {
+  // Identity, not shape. `Array.isArray(x) || typeof x === 'object'` is satisfied by `[]`, `{}` and
+  // `null`-ish objects alike, so it asserts nothing; and a getMenu() that returned a filtered,
+  // copied or re-sorted variant would keep the app working while silently diverging from the
+  // server-rendered menu. Reference equality is what the seam actually promises today.
+  assert.equal(menuSource.getMenu(), menu);
+  assert.equal(menuSource.getExtras(), extras);
+  // `menu` is FLAT (39 items, each with `variants`); `getMenu()[0].items` is undefined, so an
+  // `.items.length` assertion throws. Category grouping is the separate `categories` export.
   assert.equal(menuSource.getMenu()[0].variants.length > 0, true);
-  assert.ok(
-    Array.isArray(menuSource.getExtras().items) || typeof menuSource.getExtras() === 'object'
-  );
+  assert.ok(menuSource.getExtras().length > 0);
 });

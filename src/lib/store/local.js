@@ -1,5 +1,6 @@
-// src/lib/store/local.js — the only module allowed to name localStorage. Copied verbatim from
-// cart.js's persistence block in Phase 0 so demo devices keep their data across the upgrade.
+// src/lib/store/local.js — the only module that reads localStorage for app data. Copied verbatim
+// from cart.js's persistence block in Phase 0 so demo devices keep their data across the upgrade.
+// Base.astro is the sanctioned exception: maghapon-rail-collapsed is a UI preference, not app data.
 
 const CART_KEY = 'maghapon-cart';
 const ORDERS_KEY = 'maghapon-orders';
