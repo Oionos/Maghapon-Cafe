@@ -1,0 +1,164 @@
+/* file: admin.css */
+/* ---- Admin ---- */
+.admin-banner {
+  background: var(--rust);
+  color: var(--cream-bright);
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.55rem 1rem;
+}
+.admin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.2rem;
+  padding-top: 2.4rem;
+  padding-bottom: 1.6rem;
+}
+.admin-head h1 {
+  margin: 0;
+}
+.admin-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.admin-stat {
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  text-align: center;
+  min-width: 92px;
+}
+.admin-stat b {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--rust);
+}
+.admin-stat span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.order-card {
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.3rem 1.4rem;
+  margin-bottom: 1.2rem;
+}
+.order-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.order-number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--ink-deep);
+}
+.order-time {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.order-meta {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.3rem 0 0.8rem;
+}
+.order-items {
+  border-top: 1px dashed var(--line);
+  padding-top: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.92rem;
+}
+.order-item small {
+  opacity: 0.7;
+}
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+.order-total b {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--rust);
+}
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.pipe-step {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--cream);
+  color: var(--ink);
+  opacity: 0.6;
+}
+.pipe-step.active {
+  background: var(--rust);
+  border-color: var(--rust);
+  color: var(--cream-bright);
+  opacity: 1;
+}
+.pipe-done {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--matcha);
+}
+.admin-empty {
+  background: var(--cream-bright);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  opacity: 0.8;
+}
+.admin-bookings {
+  padding-bottom: 4rem;
+}
+.booking-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.6rem 1.4rem;
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 0.6rem;
+}
+.booking-row div {
+  display: flex;
+  flex-direction: column;
+}
+.booking-row span {
+  font-size: 0.82rem;
+  opacity: 0.75;
+}

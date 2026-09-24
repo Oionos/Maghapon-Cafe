@@ -1,0 +1,269 @@
+/* file: menu-card.css */
+/* ---- Menu cards — spotlight border + spring physics ---- */
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.7s var(--ease), box-shadow 0.7s var(--ease), border-color 0.7s var(--ease);
+  will-change: transform;
+}
+.menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--line-strong);
+}
+.menu-card-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--rust) 0%, var(--rust-amber) 60%, var(--brown) 100%);
+}
+.menu-card-initial {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-weight: 700;
+  color: rgba(244, 239, 230, 0.85);
+  text-shadow: 0 4px 18px rgba(64, 0, 0, 0.35);
+}
+.badge {
+  position: absolute;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  color: var(--cream-bright);
+}
+.badge-limited {
+  top: 0.7rem;
+  left: 0.7rem;
+  background: var(--rust);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.badge-seasonal {
+  top: 0.7rem;
+  left: 0.7rem;
+  background: var(--matcha);
+}
+.badge-star {
+  top: 0.7rem;
+  right: 0.7rem;
+  background: rgba(42, 18, 6, 0.72);
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+}
+.badge-matcha {
+  top: 0.7rem;
+  left: 0.7rem;
+  background: var(--cream-bright);
+  border: 1px solid var(--matcha);
+  color: var(--matcha);
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(187, 61, 3, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(187, 61, 3, 0);
+  }
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.menu-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 1.2rem 1.2rem 1.3rem;
+}
+.menu-card-body h3 {
+  margin-bottom: 0.35em;
+}
+.menu-card-body p {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  flex: 1;
+}
+.price-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.6rem 0 0.9rem;
+}
+.price-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.85rem;
+}
+.price-size {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+.price-chip b {
+  color: var(--ink-deep);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Compact menu card (landing ordering grid) ---- */
+.menu-card-compact {
+  border-radius: var(--radius);
+  box-shadow: 0 3px 12px rgba(64, 0, 0, 0.07);
+  border: 1px solid var(--line);
+  background: var(--cream-bright);
+}
+.menu-card-compact:hover {
+  box-shadow: 0 14px 34px rgba(64, 0, 0, 0.16);
+}
+.menu-card-compact .menu-card-media {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius) var(--radius) 0 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--rust) 0%, var(--rust-amber) 100%);
+}
+.menu-card-compact .menu-card-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.4s var(--ease);
+}
+/* Warm grounding ellipse — a soft "coaster" under the drink so the photo reads airy, not floating */
+.menu-card-compact .menu-card-media::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(42, 18, 6, 0.26) 0%,
+    rgba(42, 18, 6, 0) 70%
+  );
+  pointer-events: none;
+}
+.menu-card-compact .menu-card-initial {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  color: var(--cream-bright);
+  text-shadow: none;
+  opacity: 0.9;
+}
+.menu-card-compact .menu-card-body {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.1rem 1.1rem;
+  gap: 0.35rem;
+}
+.menu-card-compact h3 {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 0;
+  color: var(--ink-deep);
+}
+.menu-card-compact .compact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+.menu-card-compact .compact-price {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--rust);
+  white-space: nowrap;
+}
+.menu-card-compact .add-btn {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--rust);
+  color: var(--cream-bright);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease), background 0.2s, box-shadow 0.2s var(--ease);
+}
+.menu-card-compact .add-btn svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.menu-card-compact .add-btn:hover {
+  background: var(--ink-deep);
+  box-shadow: 0 4px 12px rgba(187, 61, 3, 0.35);
+}
+.menu-card-compact .add-btn:active {
+  transform: scale(0.97);
+  transition-duration: 160ms;
+}
+.menu-card-compact .add-btn:focus-visible {
+  outline: 2px solid var(--rust-amber);
+  outline-offset: 2px;
+}
+
+/* ---- Sticky category tabs ---- */
+.tabs {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 40;
+  background: rgba(224, 224, 224, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding: 0.6rem 0;
+}
+.tabs-inner {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-inner::-webkit-scrollbar {
+  display: none;
+}
+.tab-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--cream-bright);
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease);
+}
+.tab-btn:hover {
+  background: var(--rust);
+  color: var(--cream-bright);
+  text-decoration: none;
+}

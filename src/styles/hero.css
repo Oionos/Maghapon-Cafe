@@ -1,0 +1,90 @@
+/* file: hero.css */
+/* ---- Hero — min-h [100dvh] to prevent iOS jump, tighter tracking ---- */
+.hero {
+  position: relative;
+  min-height: min(100dvh, 860px);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--cream-bright);
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(42, 18, 6, 0.88) 0%, rgba(42, 18, 6, 0.55) 55%, rgba(42, 18, 6, 0.25) 100%);
+}
+.hero-content {
+  position: relative;
+  max-width: 640px;
+  padding: clamp(4rem, 10vw, 7rem) 0;
+}
+.hero h1 {
+  color: var(--cream-bright);
+  font-size: clamp(2.8rem, 7vw, 5.2rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 0.95;
+  margin-bottom: 0.4em;
+  text-wrap: balance;
+}
+.hero h1 em {
+  color: var(--rust-amber);
+  font-weight: 600;
+}
+.hero .lead {
+  font-size: clamp(1.05rem, 2.4vw, 1.25rem);
+  max-width: 52ch;
+  color: rgba(253, 251, 247, 0.92);
+  line-height: 1.7;
+}
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 1.6rem 0 2.4rem;
+}
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.6rem;
+  border-top: 1px solid var(--line-light);
+  padding-top: 1.4rem;
+}
+.hero-meta div {
+  font-size: 0.85rem;
+  color: rgba(244, 239, 230, 0.75);
+}
+.hero-meta strong {
+  display: block;
+  color: var(--cream-bright);
+  font-size: 0.95rem;
+}
+
+/* ---- Ordering surface — raised sheet overlapping the hero photo ---- */
+.order-surface {
+  position: relative;
+  z-index: 2;
+  padding: 0 0 0.5rem;
+}
+.order-surface > .container {
+  position: relative;
+  margin-top: calc(-1 * clamp(2.5rem, 6vw, 4.5rem));
+  background: var(--cream-bright);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow-lift);
+  padding-block: clamp(1.75rem, 4vw, 2.75rem);
+}
+@media (max-width: 767px) {
+  .order-surface > .container {
+    margin-top: -1.5rem;
+    padding-top: 1.5rem;
+  }
+}

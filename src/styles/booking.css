@@ -1,0 +1,139 @@
+/* file: booking.css */
+/* ---- Booking ---- */
+.booking-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.4rem;
+  align-items: center;
+}
+.booking-media img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.form-card {
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-top: 1.4rem;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.field input,
+.field select {
+  min-height: 46px;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-deep);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.field input:focus,
+.field select:focus {
+  outline: 3px solid var(--rust-amber);
+  outline-offset: 2px;
+  border-color: var(--rust);
+  box-shadow: 0 0 0 4px rgba(214, 135, 62, 0.12);
+}
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"] {
+  border-color: #c0392b;
+  background: #fdf2f2;
+}
+.field-error {
+  font-size: 0.8rem;
+  color: #c0392b;
+  margin-top: 0.25rem;
+  display: none;
+}
+.field-error.show {
+  display: block;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+}
+.checkout-note {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+.form-success {
+  display: none;
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(128, 160, 64, 0.18);
+  border: 1px solid var(--matcha);
+  color: var(--ink-deep);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.form-success.show {
+  display: block;
+}
+
+/* ---- Loyalty ---- */
+.loyalty-band {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.6rem;
+  align-items: center;
+  background: linear-gradient(120deg, var(--ink-deep) 0%, var(--rust) 100%);
+  border-radius: var(--radius);
+  padding: clamp(1.8rem, 5vw, 3rem);
+  color: var(--cream-bright);
+}
+.loyalty-band h2 {
+  color: var(--cream-bright);
+}
+.loyalty-band p {
+  opacity: 0.9;
+  margin: 0;
+}
+.loyalty-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+.loyalty-form input {
+  flex: 1 1 200px;
+  min-height: 46px;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(244, 239, 230, 0.4);
+  background: rgba(244, 239, 230, 0.12);
+  color: var(--cream-bright);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+.loyalty-form input::placeholder {
+  color: rgba(244, 239, 230, 0.65);
+}
+.loyalty-form .form-success {
+  flex-basis: 100%;
+  background: rgba(128, 160, 64, 0.25);
+  border-color: var(--matcha);
+  color: var(--cream-bright);
+}

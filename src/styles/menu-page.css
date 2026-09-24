@@ -1,0 +1,65 @@
+/* file: menu-page.css */
+/* ---- Menu page sections ---- */
+.page-head {
+  padding: clamp(2.5rem, 6vw, 4.5rem) 0 1.8rem;
+}
+.page-head h1 {
+  margin-bottom: 0.3em;
+}
+.page-head p {
+  max-width: 46em;
+  opacity: 0.85;
+}
+.menu-section {
+  padding: 2.6rem 0 0.6rem;
+  scroll-margin-top: calc(var(--header-h) + 64px);
+}.menu-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.8rem 1.4rem;
+  margin-bottom: 1.4rem;
+}
+.menu-section-head h2 {
+  margin: 0;
+}
+.menu-note {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin: 0;
+  max-width: 52em;
+}
+.extras-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+.extra-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+.extra-chip b {
+  color: var(--rust);
+}
+.off-menu-note {
+  margin: 3rem 0 4rem;
+  padding: 1.6rem 1.8rem;
+  border-radius: var(--radius);
+  background: var(--matcha);
+  color: #f6f8ef;
+}
+.off-menu-note .eyebrow {
+  color: #eef3dc;
+}
+.off-menu-note p {
+  margin-bottom: 0.4rem;
+}
+.seasonal-line {
+  font-weight: 600;
+}

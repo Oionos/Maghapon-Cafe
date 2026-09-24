@@ -1,0 +1,57 @@
+/* file: footer.css */
+/* ---- Footer ---- */
+.site-footer {
+  background: var(--bg-dark);
+  color: rgba(244, 239, 230, 0.8);
+  padding: 3rem 0 1.6rem;
+  margin-top: 2rem;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--line-light);
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+.footer-brand img {
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+}
+.footer-brand strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--cream-bright);
+}
+.site-footer h4 {
+  color: var(--rust-amber);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+}
+.site-footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.site-footer li {
+  margin-bottom: 0.5rem;
+  font-size: 0.92rem;
+}
+.site-footer a {
+  color: var(--cream-bright);
+}
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding-top: 1.4rem;
+  font-size: 0.82rem;
+  opacity: 0.7;
+}
