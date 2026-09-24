@@ -100,6 +100,29 @@ export function findSpriteSymbols(...sources) {
   return [...referenced].filter((id) => !defined.has(id));
 }
 
+// DESIGN.md is prose the build never reads, so it drifts silently — it claimed Inter for weeks
+// while the CSS loaded Geist. Hex *values* are compared rather than token names because the doc
+// says `sinaing-rust` where the code says `--rust`; name parity is Phase 2's job, when both sides
+// move together and a value-only check keeps working across the rename.
+const HEX_RE = /#[0-9a-fA-F]{6}\b/g;
+
+function colorsBlock(mdText) {
+  const m = /^colors:\n((?:[ \t]+\S.*\n)+)/m.exec(mdText);
+  return m ? m[1] : '';
+}
+
+export function findTokenDrift(designMd, cssFiles) {
+  const inDoc = new Set((colorsBlock(designMd).match(HEX_RE) || []).map((h) => h.toLowerCase()));
+  const inCode = new Set();
+  for (const f of cssFiles) {
+    for (const m of f.text.matchAll(HEX_RE)) inCode.add(m[0].toLowerCase());
+  }
+  const out = [];
+  for (const v of inDoc) if (!inCode.has(v)) out.push({ onlyInDoc: v, onlyInCode: null });
+  for (const v of inCode) if (!inDoc.has(v)) out.push({ onlyInDoc: null, onlyInCode: v });
+  return out;
+}
+
 function main() {
   const distFiles = toFiles(walk(join(ROOT, 'dist')));
   const cssFiles = toFiles(walk(join(ROOT, 'src', 'styles')));
@@ -142,6 +165,21 @@ function main() {
           .map((id) => ({ path: 'dist/icons.svg', line: 0, text: `no <symbol id="${id}">` })),
     ],
   ];
+  // The docs are gitignored, so a fresh clone must still build: guard the check on the file
+  // rather than deleting it — a missing DESIGN.md must never read as zero drift.
+  if (existsSync(join(ROOT, 'DESIGN.md'))) {
+    CHECKS.push([
+      'token drift',
+      () =>
+        findTokenDrift(readFileSync(join(ROOT, 'DESIGN.md'), 'utf8'), cssFiles.filter(
+          (f) => f.path === 'src/styles/tokens/legacy-root.css'
+        )).map((d) => ({
+          path: 'DESIGN.md',
+          line: 0,
+          text: d.onlyInDoc ? `doc-only ${d.onlyInDoc}` : `code-only ${d.onlyInCode}`,
+        })),
+    ]);
+  }
   const failures = CHECKS.flatMap(([check, run]) => run().map((h) => [check, h]));
   failures.forEach(([check, h], i) => {
     console.error(`GUARD FAIL ${i + 1} [${check}] ${h.path}:${h.line} ${h.text}`);

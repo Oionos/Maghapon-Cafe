@@ -8,6 +8,7 @@ import {
   findIconFontUsage,
   findMissingRoutes,
   findSpriteSymbols,
+  findTokenDrift,
   WEB_ROUTES,
 } from '../scripts/guard.mjs';
 
@@ -89,4 +90,30 @@ const iconNameRefs = () => {
 
 test('every icon referenced in src resolves to a sprite symbol', () => {
   assert.deepEqual(findSpriteSymbols(spriteSource(), ...iconNameRefs()), []);
+});
+
+// DESIGN.md is the contract the whole redesign was written from, and it drifted from the CSS
+// (Inter vs Geist, a #e0e0e0 gray the no-grays rule forbids). Names differ on purpose —
+// `sinaing-rust` vs `--rust` — so the only comparable thing is the hex value, and both
+// directions matter: a colour in the doc the code never uses is a promise the build breaks,
+// and a colour in the code the doc omits is an undeclared token.
+test('drift is reported in both directions by hex value', () => {
+  const md = '---\ncolors:\n  a: "#bb3d03"\n  b: "#e0e0e0"\n---\n';
+  const css = [{ path: 'src/styles/tokens/legacy-root.css',
+    text: ':root{--rust:#bb3d03;--cream:#f4efe6}' }];
+  const drift = findTokenDrift(md, css);
+  assert.deepEqual(drift.map((d) => d.onlyInDoc).filter(Boolean), ['#e0e0e0']);
+  assert.deepEqual(drift.map((d) => d.onlyInCode).filter(Boolean), ['#f4efe6']);
+});
+
+// The reconciliation tripwire, on the real files rather than a fixture: tokens/legacy-root.css
+// is Phase 0's single source of truth, and Phase 2's rename must keep this green across it.
+test('phase-0 reconciliation leaves zero color drift', () => {
+  const md = readFileSync(fileURLToPath(new URL('../DESIGN.md', import.meta.url)), 'utf8');
+  const dir = fileURLToPath(new URL('../src/styles/tokens/', import.meta.url));
+  const css = ['legacy-root.css'].map((f) => ({
+    path: 'src/styles/tokens/' + f,
+    text: readFileSync(dir + f, 'utf8'),
+  }));
+  assert.deepEqual(findTokenDrift(md, css), []);
 });
