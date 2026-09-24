@@ -1,9 +1,10 @@
 <!-- Generated from @phosphor-icons/core@2.1.1 (MIT), regular weight. Do not edit by hand; see docs/superpowers/plans/2026-09-24-phase-0-foundations.md Task 4. -->
-<!-- fill="currentColor" on every <symbol> is part of the vendored contract, not decoration: Phosphor
-   paints it on its own root <svg>, and a <use> shadow tree inherits from the referencing element, so
-   copying only the <path> loses it. A regeneration that drops the attribute is a regression - the
-   glyphs would then paint solely because .icon { fill: currentColor } in src/styles/base.css says so,
-   one CSS deletion from rendering black. tests/guard.test.mjs fails if a <symbol> loses it. -->
+<!-- fill="currentColor" on every <symbol> is part of the vendored contract, not decoration:
+   Phosphor paints it on its own root <svg>, and a <use> shadow tree inherits from the referencing
+   element, so copying only the <path> loses it. A regeneration that drops the attribute is a
+   regression - the glyphs would then paint solely because .icon { fill: currentColor } in
+   src/styles/base.css says so, one CSS deletion from rendering black. tests/guard.test.mjs fails if
+   a <symbol> loses it. -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
   <symbol id="house" viewBox="0 0 256 256" fill="currentColor"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/></symbol>
   <symbol id="coffee" viewBox="0 0 256 256" fill="currentColor"><path d="M80,56V24a8,8,0,0,1,16,0V56a8,8,0,0,1-16,0Zm40,8a8,8,0,0,0,8-8V24a8,8,0,0,0-16,0V56A8,8,0,0,0,120,64Zm32,0a8,8,0,0,0,8-8V24a8,8,0,0,0-16,0V56A8,8,0,0,0,152,64Zm96,56v8a40,40,0,0,1-37.51,39.91,96.59,96.59,0,0,1-27,40.09H208a8,8,0,0,1,0,16H32a8,8,0,0,1,0-16H56.54A96.3,96.3,0,0,1,24,136V88a8,8,0,0,1,8-8H208A40,40,0,0,1,248,120ZM200,96H40v40a80.27,80.27,0,0,0,45.12,72h69.76A80.27,80.27,0,0,0,200,136Zm32,24a24,24,0,0,0-16-22.62V136a95.78,95.78,0,0,1-1.2,15A24,24,0,0,0,232,128Z"/></symbol>

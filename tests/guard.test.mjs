@@ -56,9 +56,8 @@ test('ignores xml namespace declarations and data URIs', () => {
 });
 
 // §4.5's invariant is "zero external origin", not "zero http": a schemeless //host reference is
-// fetched over whatever scheme the page is served from, so it is unreachable offline exactly like a
-// hard https:// one. The gate on a preceding delimiter is what keeps `// comment` and `a=1;//b` in
-// bundled JS from turning a green build red.
+// fetched over whatever scheme served the page, so it is unreachable offline exactly like a hard
+// https:// one. The gate on a preceding delimiter keeps `// comment` and `a=1;//b` clean.
 test('flags a protocol-relative origin in CSS and markup', () => {
   const files = [
     { path: 'dist/a.css', text: '@font-face{src:url("//unpkg.com/x.woff2")}' },
@@ -78,10 +77,11 @@ test('flags a wss:// or ftp:// origin', () => {
 });
 
 test('does not mistake a JS comment for a host', () => {
+  const benignCss = '.x{background:url(../images/a.webp)}\nhref="/icons.svg#house"\n';
   const files = [
     { path: 'dist/app.js', text: '// a normal JS comment line\nconst a = b // c\n' },
     { path: 'dist/app2.js', text: 'a=1;//b\na=1;// x.y/z\n' },
-    { path: 'dist/a.css', text: '.x{background:url(../images/a.webp)}\nhref="/icons.svg#house"\n' },
+    { path: 'dist/a.css', text: benignCss },
   ];
   assert.deepEqual(findExternalOrigins(files), []);
 });
@@ -159,8 +159,8 @@ test('route parity is exact in both directions', () => {
 });
 
 // The return is the problem text the build prints, so a rename of the reference form cannot read
-// as an empty list: `[]` from a check that never looked at anything is the defect this file already
-// crashes on for `token drift` and skips for `icons.svg`.
+// as an empty list: a check that never looked at anything is the defect this file already crashes
+// on for `token drift`.
 test('flags a referenced symbol the sprite does not define', () => {
   const sprite = '<symbol id="house" viewBox="0 0 256 256"></symbol>';
   const page = '<use href="/icons.svg#house"/><use href="/icons.svg#rocket"/>';
@@ -182,9 +182,9 @@ test('no reference source at all fails instead of passing', () => {
 // Source asks for glyphs by <Icon name="x">; Icon.astro expands that into a <use href>, so the
 // literal pattern findSpriteSymbols reads never appears in src. Rebuild the refs from the name
 // props and feed them through the same predicate the guard runs on built HTML, so a typo is caught
-// pre-build. The 7-glyph tripwire keeps that rebuild honest — an empty refs list reads as a clean
-// pass. There is deliberately NO call-site count here: 14 was Task 4's number, it is already
-// recorded in the plan and AGENTS.md §5, and a legitimate 15th icon would fail a test whose subject
+// pre-build. The 7-glyph tripwire keeps that rebuild honest — an empty refs list reads as clean.
+// There is deliberately NO call-site count here: 14 was Task 4's number, recorded in the plan,
+// AGENTS.md §5 and the exit record, and a legitimate 15th icon must not fail a test whose subject
 // is symbol resolution rather than icon history.
 const iconNameRefs = () => {
   const names = [...appMarkup().matchAll(/<Icon\s+name="([\w-]+)"/g)].map((m) => m[1]);
@@ -200,12 +200,12 @@ test('every icon referenced in src resolves to a sprite symbol', () => {
   assert.deepEqual(findSpriteSymbols(spriteSource(), ...iconNameRefs()), []);
 });
 
-// Plan:94 promised "7 <symbol>s, fill=\"currentColor\""; only the <path> was copied, so every glyph
-// painted purely because base.css says `.icon { fill: currentColor }`. The attribute now sits on each
-// <symbol> (a <use> shadow tree inherits from the referencing element, so the sprite root cannot
-// carry it), and this is what makes a regeneration that drops it loud instead of silent.
-// Deliberately no symbol-count assertion: an 8th glyph is legitimate, and frozen call-site counts are
-// the defect removed from iconNameRefs above. The guard's own <symbol id> pattern is used here so a
+// Plan:94 promised 7 <symbol>s carrying fill="currentColor"; only the <path> was copied, so every
+// glyph painted purely because base.css says `.icon { fill: currentColor }`. The attribute now
+// sits on each <symbol> — a <use> shadow tree inherits from the referencing element, so the sprite
+// root cannot carry it — and this test is what makes a regeneration that drops it loud.
+// Deliberately no symbol-count assertion: an 8th glyph is legitimate, and frozen call-site counts
+// are the defect removed from iconNameRefs above. The guard's own <symbol id> pattern is used so a
 // leading-attribute reorder that breaks it cannot pass either.
 test('every sprite symbol carries fill="currentColor"', () => {
   const sprite = spriteSource();

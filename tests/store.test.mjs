@@ -114,6 +114,27 @@ test('no key name changed, so an existing demo device keeps its data', () => {
   assert.deepEqual([...store.keys()].sort(), KEYS.slice().sort());
 });
 
+// TOLERATED, NOT ENDORSED. exit-record §11 item 4 ruled on this: main's two raw booking reads
+// did JSON.parse(getItem(k) || '[]'), which THREW on an unparseable value, so the submit
+// handler aborted and the corrupt bytes survived in storage. The seam reads tolerantly, so an
+// unparseable or non-array value is reported as empty and the NEXT write overwrites it. That is
+// a real behaviour change on hand-edited or half-written storage, accepted deliberately and
+// pinned here so it can never be mistaken for the status quo. The assertions below fail in both
+// directions: a tolerant read that silently kept the old value would fail the "replaced" check,
+// and restoring main's throw would fail the "reads as empty" check.
+test('CORRUPT BOOKINGS ARE DISCARDED, NOT REPAIRED: read empty, next write overwrites', () => {
+  const draft = { name: 'Andy', phone: '0917', date: '2026-10-01', time: '19:00',
+    guests: 2, eventType: 'Casual' };
+  for (const corrupt of ['{not json', '{"a":1}']) {
+    store.set('maghapon-bookings', corrupt);
+    assert.deepEqual(orderStore.listBookings(), [], `${corrupt} must read as empty`);
+    const placed = orderStore.placeBooking(draft);
+    assert.deepEqual(JSON.parse(store.get('maghapon-bookings')), [placed],
+      `${corrupt} must be gone after the next write`);
+    store.clear();
+  }
+});
+
 test('menuSource serves the exact arrays data/menu.js exports', () => {
   // Identity, not shape. `Array.isArray(x) || typeof x === 'object'` is satisfied by `[]`, `{}` and
   // `null`-ish objects alike, so it asserts nothing; and a getMenu() that returned a filtered,
