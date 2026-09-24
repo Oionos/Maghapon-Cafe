@@ -121,13 +121,16 @@ test('no key name changed, so an existing demo device keeps its data', () => {
 // a real behaviour change on hand-edited or half-written storage, accepted deliberately and
 // pinned here so it can never be mistaken for the status quo. The assertions below fail in both
 // directions: a tolerant read that silently kept the old value would fail the "replaced" check,
-// and restoring main's throw would fail the "reads as empty" check.
+// and restoring main's throw would fail the "reads as empty" check. Storage must be untouched by
+// the read itself, so the third assertion pins "discarded" rather than "repaired" — without it a
+// loader that wrote `[]` back on sight would pass this test while doing something else entirely.
 test('CORRUPT BOOKINGS ARE DISCARDED, NOT REPAIRED: read empty, next write overwrites', () => {
   const draft = { name: 'Andy', phone: '0917', date: '2026-10-01', time: '19:00',
     guests: 2, eventType: 'Casual' };
   for (const corrupt of ['{not json', '{"a":1}']) {
     store.set('maghapon-bookings', corrupt);
     assert.deepEqual(orderStore.listBookings(), [], `${corrupt} must read as empty`);
+    assert.equal(store.get('maghapon-bookings'), corrupt, 'the read must not rewrite storage');
     const placed = orderStore.placeBooking(draft);
     assert.deepEqual(JSON.parse(store.get('maghapon-bookings')), [placed],
       `${corrupt} must be gone after the next write`);

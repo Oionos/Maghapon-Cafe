@@ -80,7 +80,7 @@ test('does not mistake a JS comment for a host', () => {
   const benignCss = '.x{background:url(../images/a.webp)}\nhref="/icons.svg#house"\n';
   const files = [
     { path: 'dist/app.js', text: '// a normal JS comment line\nconst a = b // c\n' },
-    { path: 'dist/app2.js', text: 'a=1;//b\na=1;// x.y/z\n' },
+    { path: 'dist/app2.js', text: 'a=1;//b\na=1;// x.y/z\na=1;//x.example.com/p\n' },
     { path: 'dist/a.css', text: benignCss },
   ];
   assert.deepEqual(findExternalOrigins(files), []);
