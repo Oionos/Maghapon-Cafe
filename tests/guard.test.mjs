@@ -73,6 +73,20 @@ test('flags a referenced symbol the sprite does not define', () => {
   assert.deepEqual(findSpriteSymbols(sprite, page), ['rocket']);
 });
 
+// Source asks for glyphs by <Icon name="x">; Icon.astro expands that into a <use href>, so the
+// literal pattern findSpriteSymbols reads never appears in src. Rebuild the refs from the name
+// props and feed them through the same predicate the guard runs on built HTML, so a typo is caught
+// pre-build. The tripwires keep that rebuild honest: an empty refs list reads as a clean pass.
+const iconNameRefs = () => {
+  const names = [...appMarkup().matchAll(/<Icon\s+name="([\w-]+)"/g)].map((m) => m[1]);
+  assert.equal(names.length, 14, 'Task 4 converted exactly 14 call sites');
+  assert.deepEqual(
+    [...new Set(names)].sort(),
+    ['calendar-blank', 'coffee', 'house', 'magnifying-glass', 'plus', 'shopping-bag', 'star'],
+    'src asks for exactly the 7 briefed symbols');
+  return names.map((name) => `<use href="/icons.svg#${name}"/>`);
+};
+
 test('every icon referenced in src resolves to a sprite symbol', () => {
-  assert.deepEqual(findSpriteSymbols(spriteSource(), appMarkup()), []);
+  assert.deepEqual(findSpriteSymbols(spriteSource(), ...iconNameRefs()), []);
 });
