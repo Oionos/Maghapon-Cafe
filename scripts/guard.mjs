@@ -145,7 +145,9 @@ export function findStyleImportMismatches(globalCssText, cssPaths, expected) {
 
 // Sprite references resolve against the sprite's own <symbol> ids, so a typo'd `<use href>`
 // renders nothing at runtime and no other check notices. Spare glyphs are deliberately not
-// reported: an unused symbol in a 7-symbol sprite violates nothing (§3.5).
+// reported: an unused symbol in a 7-symbol sprite violates nothing (§3.5). A source set that
+// references the sprite nowhere is reported too — `[]` there would mean "nothing was checked",
+// which is the failure shape this file already crashes on for `token drift`.
 export function findSpriteSymbols(...sources) {
   const [sprite, ...refs] = sources;
   const defined = new Set([...sprite.matchAll(/<symbol id="([\w-]+)"/g)].map((m) => m[1]));
@@ -153,7 +155,12 @@ export function findSpriteSymbols(...sources) {
   for (const text of refs) {
     for (const m of text.matchAll(/icons\.svg#([\w-]+)/g)) referenced.add(m[1]);
   }
-  return [...referenced].filter((id) => !defined.has(id));
+  if (referenced.size === 0) {
+    return [`no icons.svg# reference in ${refs.length} source file(s) — nothing was resolved`];
+  }
+  return [...referenced]
+    .filter((id) => !defined.has(id))
+    .map((id) => `no <symbol id="${id}"> in the sprite`);
 }
 
 // DESIGN.md is prose the build never reads, so it drifts silently — it claimed Inter for weeks
@@ -222,8 +229,10 @@ function main() {
     [
       'sprite symbols',
       () =>
-        (spriteOk ? findSpriteSymbols(spriteOk.text, ...pages.map((p) => p.text)) : ['icons.svg'])
-          .map((id) => ({ path: 'dist/icons.svg', line: 0, text: `no <symbol id="${id}">` })),
+        (spriteOk
+          ? findSpriteSymbols(spriteOk.text, ...pages.map((p) => p.text))
+          : ['dist/icons.svg is not in the build'])
+          .map((text) => ({ path: 'dist/icons.svg', line: 0, text })),
     ],
     [
       'style imports',

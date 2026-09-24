@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { relative, sep } from 'node:path';
+import { existsSync, globSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CSS_IMPORT_ORDER,
@@ -16,15 +16,23 @@ import {
   WEB_ROUTES,
 } from '../scripts/guard.mjs';
 
+const root = fileURLToPath(new URL('..', import.meta.url));
+
 // The sprite tests read source rather than build output, so they run before `npm run build`.
 const spriteSource = () =>
   readFileSync(fileURLToPath(new URL('../public/icons.svg', import.meta.url)), 'utf8');
 
-const appMarkup = () =>
-  ['src/layouts/Base.astro', 'src/components/MenuCard.astro', 'src/pages/404.astro',
-    'src/pages/index.astro']
-    .map((p) => readFileSync(fileURLToPath(new URL('../' + p, import.meta.url)), 'utf8'))
-    .join('\n');
+// Every .astro in src/, not the four files that happen to use <Icon> today: the test below is
+// titled "every icon referenced in src", and a hard-coded list makes that title a lie the moment a
+// fifth file asks for a glyph. fs.globSync exists in Node 24 (checked with `node -e
+// "typeof require('fs').globSync'"`), and its results are neither sorted nor POSIX-separated on
+// Windows, so both are normalised here rather than left to chance.
+const SRC_ASTRO = () =>
+  globSync('src/**/*.astro', { cwd: root })
+    .map((p) => p.split(sep).join('/'))
+    .sort();
+
+const appMarkup = () => SRC_ASTRO().map((p) => readFileSync(join(root, p), 'utf8')).join('\n');
 
 test('flags the real CDN tags and nothing else', () => {
   const files = [{
@@ -125,16 +133,16 @@ test('reordering two adjacent slices is reported — membership alone would pass
 test('an orphan .css on disk is named as shipping nothing', () => {
   const problems = findStyleImportMismatches(
     asImports(...ORDER), withGlobal([...ORDER, 'src/styles/leftover.css']), ORDER);
-  assert.deepEqual(problems, ['orphan: src/styles/leftover.css is on disk but imported by nothing']);
+  assert.deepEqual(problems,
+    ['orphan: src/styles/leftover.css is on disk but imported by nothing']);
 });
 
 test('the real global.css imports exactly CSS_IMPORT_ORDER, in order, with no orphan', () => {
   assert.ok(CSS_IMPORT_ORDER.length > 1, 'CSS_IMPORT_ORDER must declare more than one slice');
   assert.equal(new Set(CSS_IMPORT_ORDER).size, CSS_IMPORT_ORDER.length,
     'CSS_IMPORT_ORDER has a duplicate entry');
-  const root = fileURLToPath(new URL('..', import.meta.url));
-  const onDisk = walk(`${root}src/styles`).map((p) => relative(root, p).split(sep).join('/'));
-  const text = readFileSync(`${root}src/styles/global.css`, 'utf8');
+  const onDisk = walk(join(root, 'src/styles')).map((p) => relative(root, p).split(sep).join('/'));
+  const text = readFileSync(join(root, 'src/styles/global.css'), 'utf8');
   assert.deepEqual(findStyleImportMismatches(text, onDisk, CSS_IMPORT_ORDER), []);
 });
 
@@ -150,19 +158,37 @@ test('route parity is exact in both directions', () => {
     ['dist/probe-tmp/index.html']);
 });
 
+// The return is the problem text the build prints, so a rename of the reference form cannot read
+// as an empty list: `[]` from a check that never looked at anything is the defect this file already
+// crashes on for `token drift` and skips for `icons.svg`.
 test('flags a referenced symbol the sprite does not define', () => {
   const sprite = '<symbol id="house" viewBox="0 0 256 256"></symbol>';
   const page = '<use href="/icons.svg#house"/><use href="/icons.svg#rocket"/>';
-  assert.deepEqual(findSpriteSymbols(sprite, page), ['rocket']);
+  assert.deepEqual(findSpriteSymbols(sprite, page), ['no <symbol id="rocket"> in the sprite']);
+});
+
+test('a source set that references the sprite nowhere fails instead of passing', () => {
+  const sprite = '<symbol id="house" viewBox="0 0 256 256"></symbol>';
+  const problems = findSpriteSymbols(sprite, '<p>no icon here</p>', '<div class="icon"></div>');
+  assert.equal(problems.length, 1, JSON.stringify(problems));
+  assert.match(problems[0], /icons\.svg#/, problems[0]);
+});
+
+test('no reference source at all fails instead of passing', () => {
+  const problems = findSpriteSymbols('<symbol id="house" viewBox="0 0 256 256"></symbol>');
+  assert.equal(problems.length, 1, JSON.stringify(problems));
 });
 
 // Source asks for glyphs by <Icon name="x">; Icon.astro expands that into a <use href>, so the
 // literal pattern findSpriteSymbols reads never appears in src. Rebuild the refs from the name
 // props and feed them through the same predicate the guard runs on built HTML, so a typo is caught
-// pre-build. The tripwires keep that rebuild honest: an empty refs list reads as a clean pass.
+// pre-build. The 7-glyph tripwire keeps that rebuild honest — an empty refs list reads as a clean
+// pass. There is deliberately NO call-site count here: 14 was Task 4's number, it is already
+// recorded in the plan and AGENTS.md §5, and a legitimate 15th icon would fail a test whose subject
+// is symbol resolution rather than icon history.
 const iconNameRefs = () => {
   const names = [...appMarkup().matchAll(/<Icon\s+name="([\w-]+)"/g)].map((m) => m[1]);
-  assert.equal(names.length, 14, 'Task 4 converted exactly 14 call sites');
+  assert.ok(names.length > 0, 'src references no icon at all — the rebuild checks nothing');
   assert.deepEqual(
     [...new Set(names)].sort(),
     ['calendar-blank', 'coffee', 'house', 'magnifying-glass', 'plus', 'shopping-bag', 'star'],
@@ -172,6 +198,16 @@ const iconNameRefs = () => {
 
 test('every icon referenced in src resolves to a sprite symbol', () => {
   assert.deepEqual(findSpriteSymbols(spriteSource(), ...iconNameRefs()), []);
+});
+
+// The glob is what makes the title above true, so pin that it actually walks: src has 14 .astro
+// files today and Icon.astro is one of them. If the pattern ever matches nothing, the test would
+// read as a pass on an empty refs list.
+test('the src glob sees every .astro file, not the four that use icons today', () => {
+  const files = SRC_ASTRO();
+  assert.ok(files.length >= 14, `glob matched only ${files.length} .astro files`);
+  const must = ['src/components/Icon.astro', 'src/components/Hero.astro', 'src/pages/index.astro'];
+  for (const f of must) assert.ok(files.includes(f), `glob missed ${f}`);
 });
 
 // DESIGN.md is the contract the whole redesign was written from, and it drifted from the CSS
