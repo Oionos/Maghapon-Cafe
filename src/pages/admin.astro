@@ -1,5 +1,5 @@
 ---
-// Admin — demo order dashboard (localStorage only, no auth, no backend)
+// Admin — demo order dashboard (this browser's store only, no auth, no backend)
 import Base from '../layouts/Base.astro';
 ---
 <Base
@@ -28,7 +28,12 @@ import Base from '../layouts/Base.astro';
   </div>
 
   <script>
-    import { loadOrders, saveOrders, loadBookings } from '../lib/cart.js';
+    import {
+      listOrders,
+      seedOrders,
+      updateOrderStatus,
+      listBookings,
+    } from '../lib/store/orderStore.js';
 
     const STATUSES = ['Received', 'Preparing', 'Ready', 'Served'];
     const SEED = {
@@ -57,10 +62,10 @@ import Base from '../layouts/Base.astro';
       });
     }
     function getOrders() {
-      let orders = loadOrders();
+      let orders = listOrders();
       if (orders.length === 0) {
         orders = [SEED];
-        saveOrders(orders);
+        seedOrders(orders);
       }
       return orders;
     }
@@ -111,21 +116,14 @@ import Base from '../layouts/Base.astro';
           .join('');
         list.querySelectorAll('[data-advance]').forEach((btn) =>
           btn.addEventListener('click', () => {
-            const orders2 = getOrders();
-            const target = orders2.find((x) => x.id === btn.dataset.advance);
-            if (target) {
-              const next = STATUSES[STATUSES.indexOf(target.status) + 1];
-              if (next) {
-                target.status = next;
-                saveOrders(orders2);
-                render();
-              }
-            }
+            const o = getOrders().find((x) => x.id === btn.dataset.advance);
+            const next = o && STATUSES[STATUSES.indexOf(o.status) + 1];
+            if (next && updateOrderStatus(o.id, next)) render();
           })
         );
       }
 
-      const bookings = loadBookings();
+      const bookings = listBookings();
       const bList = document.getElementById('bookings-list');
       if (bookings.length === 0) {
         bList.innerHTML = '<div class="admin-empty">No booking requests yet.</div>';

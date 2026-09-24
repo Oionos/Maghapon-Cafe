@@ -179,7 +179,7 @@ const featuredImages = {
   </section>
 
   <script>
-    import { saveRewards } from '../lib/cart.js';
+    import { joinRewardsList } from '../lib/store/orderStore.js';
 
     // Time-based greeting (visitor's local hour)
     const greeting = document.getElementById('greeting');
@@ -262,9 +262,7 @@ const featuredImages = {
       if (name.length < 2) { setFieldError(loyaltyName, 'Please enter your name (at least 2 characters).'); ok = false; } else setFieldError(loyaltyName, '');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError(loyaltyEmail, 'Please enter a valid email address.'); ok = false; } else setFieldError(loyaltyEmail, '');
       if (!ok) return;
-      const rewards = JSON.parse(localStorage.getItem('maghapon-rewards') || '[]');
-      rewards.push({ name, email, createdAt: new Date().toISOString() });
-      saveRewards(rewards);
+      joinRewardsList({ name, email });
       document.getElementById('loyalty-success').textContent =
         "You're on the list! We'll email you when Maghapon Rewards launches.";
       document.getElementById('loyalty-success').classList.add('show');

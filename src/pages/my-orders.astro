@@ -1,5 +1,5 @@
 ---
-// My orders — customer order history from localStorage 'maghapon-orders' (same data admin reads).
+// My orders — customer order history from the store seam (same data admin reads).
 import Base from '../layouts/Base.astro';
 ---
 <Base
@@ -20,7 +20,7 @@ import Base from '../layouts/Base.astro';
   <div class="container my-orders-list" id="my-orders-list"></div>
 
   <script>
-    import { loadOrders } from '../lib/cart.js';
+    import { listOrders } from '../lib/store/orderStore.js';
 
     function esc(s) {
       return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,7 +36,7 @@ import Base from '../layouts/Base.astro';
     }
 
     function render() {
-      const orders = loadOrders();
+      const orders = listOrders();
       const list = document.getElementById('my-orders-list');
       if (orders.length === 0) {
         list.innerHTML = `
