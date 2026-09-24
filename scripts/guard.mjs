@@ -8,6 +8,13 @@ export const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const ASSET_RE = /\.(html|css|js|mjs|webmanifest|svg)$/i;
 // xmlns/xml prefixes are identity URIs, never fetched — the grain data-URI in base.css uses one.
 const NS_DECL = /xmlns(:[a-z]+)?\s*=\s*["'][^"']*["']/g;
+// §4.5's invariant is "zero external origin", and /https?:\/\// missed two ways to break it: a
+// schemeless //host reference (fetched over whatever scheme served the page, unreachable offline
+// exactly like a hard https:// one) and any non-http scheme. A bare \/\/ would also fire on every
+// `// comment` and `a=1;//b` in bundled JS, so the schemeless form is gated on a preceding
+// delimiter and demands a host-shaped segment before the first slash.
+export const EXTERNAL_RE =
+  /(?:https?:|wss?:|ftp:)\/\/|(?<=["'(=])\/\/[a-z0-9][a-z0-9.-]*\.[a-z]{2,}\//i;
 
 export const WEB_ROUTES = [
   'dist/404.html',
@@ -70,7 +77,7 @@ function eachLine(files, test) {
 
 export function findExternalOrigins(files) {
   return eachLine(files.map((f) => ({ ...f, text: f.text.replace(NS_DECL, '') })), (line) =>
-    /https?:\/\//.test(line)
+    EXTERNAL_RE.test(line)
   );
 }
 

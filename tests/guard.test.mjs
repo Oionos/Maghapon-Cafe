@@ -47,6 +47,37 @@ test('ignores xml namespace declarations and data URIs', () => {
   assert.deepEqual(findExternalOrigins([{ path: 'dist/a.css', text: css }]), []);
 });
 
+// §4.5's invariant is "zero external origin", not "zero http": a schemeless //host reference is
+// fetched over whatever scheme the page is served from, so it is unreachable offline exactly like a
+// hard https:// one. The gate on a preceding delimiter is what keeps `// comment` and `a=1;//b` in
+// bundled JS from turning a green build red.
+test('flags a protocol-relative origin in CSS and markup', () => {
+  const files = [
+    { path: 'dist/a.css', text: '@font-face{src:url("//unpkg.com/x.woff2")}' },
+    { path: 'dist/index.html', text: '<script src="//cdn.example.com/a.js"></script>' },
+  ];
+  const hits = findExternalOrigins(files);
+  assert.deepEqual(hits.map((h) => h.path), ['dist/a.css', 'dist/index.html']);
+});
+
+test('flags a wss:// or ftp:// origin', () => {
+  const files = [
+    { path: 'dist/app.js', text: 'location="wss://sock.example.com"' },
+    { path: 'dist/app2.js', text: "data-u='ftp://h/f'" },
+  ];
+  assert.deepEqual(findExternalOrigins(files).map((h) => h.path),
+    ['dist/app.js', 'dist/app2.js']);
+});
+
+test('does not mistake a JS comment for a host', () => {
+  const files = [
+    { path: 'dist/app.js', text: '// a normal JS comment line\nconst a = b // c\n' },
+    { path: 'dist/app2.js', text: 'a=1;//b\na=1;// x.y/z\n' },
+    { path: 'dist/a.css', text: '.x{background:url(../images/a.webp)}\nhref="/icons.svg#house"\n' },
+  ];
+  assert.deepEqual(findExternalOrigins(files), []);
+});
+
 test('reports an undefined var usage with its site', () => {
   const files = [{ path: 'src/styles/base.css', text: ':root{--a:1}\n.x{color:var(--b)}' }];
   const hits = findUndefinedTokens(files);
