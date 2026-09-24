@@ -83,6 +83,19 @@ export function findMissingRoutes(filePaths, expected) {
   return [...expected.filter((r) => !have.has(r)), ...extra];
 }
 
+// Sprite references resolve against the sprite's own <symbol> ids, so a typo'd `<use href>`
+// renders nothing at runtime and no other check notices. Spare glyphs are deliberately not
+// reported: an unused symbol in a 7-symbol sprite violates nothing (§3.5).
+export function findSpriteSymbols(...sources) {
+  const [sprite, ...refs] = sources;
+  const defined = new Set([...sprite.matchAll(/<symbol id="([\w-]+)"/g)].map((m) => m[1]));
+  const referenced = new Set();
+  for (const text of refs) {
+    for (const m of text.matchAll(/icons\.svg#([\w-]+)/g)) referenced.add(m[1]);
+  }
+  return [...referenced].filter((id) => !defined.has(id));
+}
+
 function main() {
   const distFiles = toFiles(walk(join(ROOT, 'dist')));
   const cssFiles = toFiles(walk(join(ROOT, 'src', 'styles')));
@@ -94,6 +107,7 @@ function main() {
   // Only the documents are routes, so parity is judged on .html — otherwise every hashed
   // chunk and the sprite itself come back as "unexpected route" failures on a good build.
   const pages = distFiles.filter((f) => f.path.endsWith('.html'));
+  const spriteOk = distFiles.find((f) => f.path === 'dist/icons.svg');
   // One entry per check. Task 4 appends `sprite symbols` and Task 7 appends `token drift`
   // here; the count below is read off this array so it can never drift from what ran.
   const CHECKS = [
@@ -116,6 +130,12 @@ function main() {
           line: 0,
           text: '',
         })),
+    ],
+    [
+      'sprite symbols',
+      () =>
+        (spriteOk ? findSpriteSymbols(spriteOk.text, ...pages.map((p) => p.text)) : ['icons.svg'])
+          .map((id) => ({ path: 'dist/icons.svg', line: 0, text: `no <symbol id="${id}">` })),
     ],
   ];
   const failures = CHECKS.flatMap(([check, run]) => run().map((h) => [check, h]));

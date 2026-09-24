@@ -1,0 +1,15 @@
+---
+// Icon — the only icon primitive. Decorative by construction: every former <i> site already
+// carried aria-hidden with the label on its control, so labelling stays where it was.
+const { name, size = 22, class: className = '' } = Astro.props;
+---
+<svg
+  class={`icon ${className}`.trim()}
+  viewBox="0 0 256 256"
+  width={size}
+  height={size}
+  aria-hidden="true"
+  focusable="false"
+>
+  <use href={`/icons.svg#${name}`} />
+</svg>

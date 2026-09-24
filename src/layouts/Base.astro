@@ -13,6 +13,7 @@ import { Image } from 'astro:assets';
 import logoImg from '../assets/logo.webp';
 import CartDrawer from '../components/CartDrawer.astro';
 import CartPanel from '../components/CartPanel.astro';
+import Icon from '../components/Icon.astro';
 
 const {
   title = 'Maghapon Café — Filipino Afternoon Coffee Culture',
@@ -55,7 +56,7 @@ const isOrders = path === '/my-orders';
             <span class="status-text">Checking hours…</span>
           </span>
           <button class="cart-btn order-toggle" id="cart-open" type="button" data-order-toggle aria-controls="cart-panel" aria-expanded="false" aria-label="Open order menu" title="Open order menu">
-            <i class="ph ph-shopping-bag cart-icon" aria-hidden="true" style="font-size:18px"></i>
+            <Icon name="shopping-bag" class="cart-icon" size={18} />
             <span class="cart-count" id="cart-count" hidden>0</span>
           </button>
         </div>
@@ -68,23 +69,23 @@ const isOrders = path === '/my-orders';
         </a>
         <nav class="rail-nav" id="rail-navigation" aria-label="Main">
           <a href="/" class={isHome ? 'is-active' : ''} aria-current={isHome ? 'page' : undefined} aria-label="Home" title="Home">
-            <i class="ph ph-house rail-icon" aria-hidden="true"></i>
+            <Icon name="house" class="rail-icon" size={22} />
             <span class="rail-label">Home</span>
           </a>
           <a href="/menu" class={isMenu ? 'is-active' : ''} aria-current={isMenu ? 'page' : undefined} aria-label="Order" title="Order">
-            <i class="ph ph-coffee rail-icon" aria-hidden="true"></i>
+            <Icon name="coffee" class="rail-icon" size={22} />
             <span class="rail-label">Order</span>
           </a>
           <a href="/booking" class={isBooking ? 'is-active' : ''} aria-current={isBooking ? 'page' : undefined} aria-label="Book a table" title="Book a table">
-            <i class="ph ph-calendar-blank rail-icon" aria-hidden="true"></i>
+            <Icon name="calendar-blank" class="rail-icon" size={22} />
             <span class="rail-label">Book a table</span>
           </a>
           <a href="/my-orders" class={isOrders ? 'is-active' : ''} aria-current={isOrders ? 'page' : undefined} aria-label="My orders" title="My orders">
-            <i class="ph ph-shopping-bag rail-icon" aria-hidden="true"></i>
+            <Icon name="shopping-bag" class="rail-icon" size={22} />
             <span class="rail-label">My orders</span>
           </a>
           <a href="/#rewards" aria-label="Rewards" title="Rewards">
-            <i class="ph ph-star rail-icon" aria-hidden="true"></i>
+            <Icon name="star" class="rail-icon" size={22} />
             <span class="rail-label">Rewards</span>
           </a>
         </nav>
@@ -171,20 +172,20 @@ const isOrders = path === '/my-orders';
     {!isAdmin && (
       <nav class="tab-bar" aria-label="Primary">
         <a href="/" class={isHome ? 'is-active' : ''} aria-current={isHome ? 'page' : undefined}>
-          <i class="ph ph-house" aria-hidden="true" style="font-size:22px"></i>
+          <Icon name="house" size={22} />
           <span>Home</span>
         </a>
         <a href="/menu" class={isMenu ? 'is-active' : ''} aria-current={isMenu ? 'page' : undefined}>
-          <i class="ph ph-coffee" aria-hidden="true" style="font-size:22px"></i>
+          <Icon name="coffee" size={22} />
           <span>Menu</span>
         </a>
         <a href="/booking" class={isBooking ? 'is-active' : ''} aria-current={isBooking ? 'page' : undefined}>
-          <i class="ph ph-calendar-blank" aria-hidden="true" style="font-size:22px"></i>
+          <Icon name="calendar-blank" size={22} />
           <span>Book</span>
         </a>
          <button class="tab-cart" id="cart-open-tab" type="button" data-order-toggle aria-controls="cart-drawer" aria-expanded="false" aria-label="Open order menu" title="Open order menu">
           <span class="tab-icon">
-            <i class="ph ph-shopping-bag" aria-hidden="true" style="font-size:22px"></i>
+            <Icon name="shopping-bag" size={22} />
             <span class="cart-count" id="cart-count-tab" data-cart-badge hidden>0</span>
           </span>
           <span>Cart</span>

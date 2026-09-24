@@ -1,12 +1,25 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   findExternalOrigins,
   findUndefinedTokens,
   findIconFontUsage,
   findMissingRoutes,
+  findSpriteSymbols,
   WEB_ROUTES,
 } from '../scripts/guard.mjs';
+
+// The sprite tests read source rather than build output, so they run before `npm run build`.
+const spriteSource = () =>
+  readFileSync(fileURLToPath(new URL('../public/icons.svg', import.meta.url)), 'utf8');
+
+const appMarkup = () =>
+  ['src/layouts/Base.astro', 'src/components/MenuCard.astro', 'src/pages/404.astro',
+    'src/pages/index.astro']
+    .map((p) => readFileSync(fileURLToPath(new URL('../' + p, import.meta.url)), 'utf8'))
+    .join('\n');
 
 test('flags the real CDN tags and nothing else', () => {
   const files = [{
@@ -52,4 +65,14 @@ test('route parity is exact in both directions', () => {
   assert.deepEqual(findMissingRoutes(['dist/index.html'], WEB_ROUTES).length, WEB_ROUTES.length - 1);
   assert.deepEqual(findMissingRoutes([...WEB_ROUTES, 'dist/probe-tmp/index.html'], WEB_ROUTES),
     ['dist/probe-tmp/index.html']);
+});
+
+test('flags a referenced symbol the sprite does not define', () => {
+  const sprite = '<symbol id="house" viewBox="0 0 256 256"></symbol>';
+  const page = '<use href="/icons.svg#house"/><use href="/icons.svg#rocket"/>';
+  assert.deepEqual(findSpriteSymbols(sprite, page), ['rocket']);
+});
+
+test('every icon referenced in src resolves to a sprite symbol', () => {
+  assert.deepEqual(findSpriteSymbols(spriteSource(), appMarkup()), []);
 });

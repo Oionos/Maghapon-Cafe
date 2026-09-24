@@ -98,3 +98,8 @@ em {
 .skip-link:focus {
   top: 1rem;
 }
+.icon {
+  display: inline-block;
+  flex: none;
+  fill: currentColor;
+}
