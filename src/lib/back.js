@@ -9,10 +9,8 @@ export const BACK = {
   EXIT: 'exit',
 };
 
-// Every caller passes `now`; the old `now = 0` default manufactured the epoch-0 armed timestamp
-// that review concern M8 had to explain away. `armedAt !== null` below is deliberate and must stay:
-// `armedAt: 0` is a legitimate armed value for a fake clock starting at zero, so a truthiness
-// `if (armedAt)` would silently never exit.
+// `armedAt !== null` is deliberate, not a verbose way of writing `if (armedAt)`: `armedAt: 0` is a
+// legitimate armed timestamp for a clock that starts at zero, and truthiness would never exit.
 export function decideBack({ overlayOpen = false, canGoBack = false, now, armedAt = null }) {
   if (overlayOpen) return { action: BACK.CLOSE, armedAt: null };
   if (canGoBack) return { action: BACK.BACK, armedAt: null };

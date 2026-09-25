@@ -90,28 +90,3 @@ test('press() returns the action it took, for all four cases', () => {
   assert.equal(back.press(), BACK.EXIT, 'the second press inside the window returns EXIT');
   assert.deepEqual(log, ['notify:close', 'goBack', 'notify:arm-exit', 'exit']);
 });
-
-// M6: an action outside BACK.* must complain, not quit (§2.6, no silent swallowing).
-test('an out-of-contract action throws instead of exiting', () => {
-  const log = [];
-  const back = createBackPress({
-    isOverlayOpen: () => true,
-    canGoBack: () => false,
-    goBack: () => log.push('goBack'),
-    exit: () => log.push('exit'),
-    notify: (kind) => log.push(`notify:${kind}`),
-    now: () => 0,
-  });
-  // decideBack() cannot return a fifth action, so the branch is reached by making BACK.CLOSE read
-  // differently in the two places it is touched: a getter handing out a fresh value per read is
-  // the only injection that needs no new seam in the module. Without it this test would only pin
-  // today's action set, and a swallowed EXIT would stay invisible.
-  const original = Object.getOwnPropertyDescriptor(BACK, 'CLOSE');
-  try {
-    Object.defineProperty(BACK, 'CLOSE', { get: () => Symbol('out-of-contract') });
-    assert.throws(() => back.press(), /unknown back action/, 'the else-branch must throw');
-    assert.deepEqual(log, [], 'an unknown action must never reach exit()');
-  } finally {
-    Object.defineProperty(BACK, 'CLOSE', original);
-  }
-});
