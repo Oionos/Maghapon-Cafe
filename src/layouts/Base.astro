@@ -567,7 +567,13 @@ const isOrders = path === '/my-orders';
         notify: (kind) => {
           if (kind === BACK.CLOSE) {
             // The decision said "close"; only the component that owns the overlay can do it.
+            // Two calls because the two surfaces have two owners: the drawer closes itself on
+            // maghapon:cart-close (CartDrawer.astro); CartPanel registers no such listener, and
+            // its only closer is this shell's own setPanelOpen. Without the second call a
+            // ≥1024px press toasts "closed" while the panel stays open, and every later press
+            // answers "close" again — the back button dead-ends permanently on the desktop.
             window.dispatchEvent(new CustomEvent('maghapon:cart-close'));
+            setPanelOpen(false);
             notifyBack('Closed the order menu.');
             return;
           }

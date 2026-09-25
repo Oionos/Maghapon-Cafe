@@ -309,7 +309,9 @@
 
 /* ---- Hardware back-press toast (Task 8, spec §6.6) ---- */
 /* Sits with the tab-bar rules because its `bottom` clears that bar's height at ≤767px; z-index 70
-   keeps it above the global order cluster (60) and below the tab bar (80) and the drawer (100). */
+   keeps it above the global order cluster (60) and below the tab bar (80) and the drawer (100).
+   Measured pair: --cream-bright #fdfbf7 on --ink #602000 = 11.92:1 (WCAG); the --line-light this
+   first shipped at is a 12% border wash and measured 1.38:1 here, so it is not a text colour. */
 .back-toast {
   position: fixed;
   left: 50%;
@@ -318,7 +320,7 @@
   padding: 0.6rem 1rem;
   border-radius: 999px;
   background: var(--ink);
-  color: var(--line-light);
+  color: var(--cream-bright);
   font-size: 0.85rem;
   opacity: 0;
   pointer-events: none;
