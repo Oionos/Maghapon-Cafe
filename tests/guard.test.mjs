@@ -151,13 +151,16 @@ test('the real global.css imports exactly CSS_IMPORT_ORDER, in order, with no or
 });
 
 test('flags the phosphor icon font by class', () => {
-  const files = [{ path: 'dist/index.html', text: '<i class="ph ph-house" aria-hidden="true"></i>' }];
+  const files = [
+    { path: 'dist/index.html', text: '<i class="ph ph-house" aria-hidden="true"></i>' },
+  ];
   assert.equal(findIconFontUsage(files).length, 1);
 });
 
 test('route parity is exact in both directions', () => {
   assert.deepEqual(findMissingRoutes(WEB_ROUTES, WEB_ROUTES), []);
-  assert.deepEqual(findMissingRoutes(['dist/index.html'], WEB_ROUTES).length, WEB_ROUTES.length - 1);
+  assert.deepEqual(
+    findMissingRoutes(['dist/index.html'], WEB_ROUTES).length, WEB_ROUTES.length - 1);
   assert.deepEqual(findMissingRoutes([...WEB_ROUTES, 'dist/probe-tmp/index.html'], WEB_ROUTES),
     ['dist/probe-tmp/index.html']);
 });
@@ -499,16 +502,19 @@ test('findTransitionCss needs the keyframes, the root wiring and a reduced-motio
   );
 });
 
-// ---- Ruling S: check 9's three testable hardening items ------------------------------------
+// ---- Ruling S: check 9's testable hardening items -------------------------------------------
 // The ruling's fourth item is the coverage-limit comments in guard.mjs, which state what no fixture
-// here can pin: zero applications still passes, and a later cascade override defeats the scan.
-// Every fixture below is one mutation of an otherwise compliant sheet, so an assertion can fail
-// only for the predicate it names. `node_modules/.cache/maghapon/t9a-mutants.mjs` replays these
-// against single-mutation copies of guard.mjs and prints the matrix that shows each one bites.
+// here can pin: zero applications still passes, a duplicate of one name spread over two FILES still
+// passes, and a later cascade override defeats the scan. Every fixture below is one mutation of an
+// otherwise compliant sheet, so an assertion can fail only for the predicate it names.
+// `node_modules/.cache/maghapon/t9a-mutants.mjs` and `t9a2-matrix.mjs` replay these against
+// single-mutation copies of guard.mjs and print the matrices that show each one bites.
 
 // The body a compliant reduced-motion block must carry: both root pseudo-elements, `!important` —
-// a Task 7 cascade test proved the longhand loses the root pair's animation without it, so the
-// requirement is load-bearing and none of the widening below touches it.
+// load-bearing because Task 7's cascade run measured a reduce-equivalent stop inside a media query
+// WITHOUT it losing to a later equal-specificity author rule (`rr7-cascade.log:2` reads
+// `animationName = spin`), so the plain declaration is not what stops the animation. None of the
+// widening below touches that requirement.
 const ROOT_STOP =
   '::view-transition-old(root),::view-transition-new(root){animation:none!important}';
 const BARE = `@media (prefers-reduced-motion){${ROOT_STOP}}`;
@@ -600,5 +606,64 @@ test('a commented-out view-transition-name is not an application', () => {
         named('maghapon-tab-bar')
     ),
     ['view-transition-name: maghapon-tab-bar is applied 2 times — one name may name one element']
+  );
+});
+
+// Ruling S item 3's remaining hole, found by the review's B7 fixture: CSS closes an unterminated
+// `/*` at the end of the text, so nothing after one is live — but a lazy-only closer finds no
+// closer, strips nothing, and hands the whole commented-out tail back to the count. Same landmine
+// class as the test above: a correct file, one a browser simply ignores the tail of, refused.
+test('an unterminated /* runs to the end of the sheet, as CSS reads it', () => {
+  const named = (n) => `.x{view-transition-name:${n}}`;
+  const twice = named('maghapon-tab-bar') + named('maghapon-tab-bar');
+
+  // The tail never opens a declaration to the browser, so nothing here is applied twice.
+  assert.deepEqual(findTransitionCss(`${sheetPlus(VALUE)}/* ${twice}`), []);
+
+  // The same input with the closer present IS two live applications. The two inputs differ only by
+  // that terminator, so the pair pins how it is read: a strip matching only a closed comment passes
+  // this assertion and fails the one above.
+  assert.deepEqual(
+    findTransitionCss(`${sheetPlus(VALUE)}/* x */ ${twice}`),
+    ['view-transition-name: maghapon-tab-bar is applied 2 times — one name may name one element']
+  );
+});
+
+// Ruling S item 3's asymmetry, closed rather than commented: the corpus-wide predicates used to
+// read raw text while only the application count stripped it, so a fully commented-out second
+// animation FAILED the build (the false-positive direction Ruling S calls a landmine) while a
+// commented-out `@keyframes` or carve-out passed the check it does not satisfy (the false-negative
+// direction). One stripped input now feeds every predicate, and the two directions agree.
+test('every check 9 predicate reads comment-stripped CSS', () => {
+  const tabBarCarve =
+    '::view-transition-group(maghapon-tab-bar),::view-transition-old(maghapon-tab-bar),' +
+    '::view-transition-new(maghapon-tab-bar){animation:none;mix-blend-mode:normal}';
+
+  // Dead text cannot animate a group: this used to report `astro-fade is a second animation`.
+  assert.deepEqual(
+    findTransitionCss(
+      sheetPlus(VALUE) +
+        '/* @keyframes astro-fade{from{opacity:0}}' +
+        ' ::view-transition-old(root){animation:astro-fade .25s} */'
+    ),
+    []
+  );
+
+  // The mirror image: a keyframe that exists only in a comment is missing, not defined.
+  assert.deepEqual(
+    findTransitionCss(
+      sheetPlus(VALUE).replace(
+        '@keyframes maghapon-page-in{from{opacity:0;transform:translateY(8px)}}',
+        '/* @keyframes maghapon-page-in{from{opacity:0}} */'
+      )
+    ),
+    ['missing @keyframes maghapon-page-in']
+  );
+
+  // And a carve-out parked in a comment stops nothing, so it is not a carve-out.
+  assert.ok(
+    findTransitionCss(sheetPlus(VALUE).replace(tabBarCarve, `/* ${tabBarCarve} */`)).includes(
+      'no carve-out rule for maghapon-tab-bar (group old new not stopped)'
+    )
   );
 });

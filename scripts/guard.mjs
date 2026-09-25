@@ -235,10 +235,18 @@ function reducedMotionBlocks(cssText) {
   return bodies;
 }
 
-// A commented-out declaration is not a declaration: without this, a disabled `view-transition-name`
-// line left in the sheet feeds the application count below and the check refuses a correct file.
+// What a browser cannot see, this check must not see either: a commented-out declaration is not a
+// declaration. Leaving `/* … */` text in the input made check 9 refuse a correct sheet — parking a
+// rule mid-restyle is the normal thing to do with a disabled `view-transition-name` — while a
+// commented-out `@keyframes` quietly satisfied "defined". An unterminated `/*` is closed at the end
+// of the text, exactly as CSS does, because a lazy-only closer strips nothing from such a sheet and
+// hands its commented-out tail back to the count. Measured 2026-09-26 over the shipped
+// `dist/_astro/Base.DthEEQz0.css`: 0 occurrences of `/*` in 47,768 chars, so today the strip is the
+// identity and the shapes it protects are Phase 2 authoring, not a live hole. The cost of the tail
+// form is that a `/*` inside a `url(data:…)` value would hide the rest of the sheet from this check
+// — the shipped sheet carries 2 `data:` URIs and none of them contains one.
 function stripComments(text) {
-  return text.replace(/\/\*[\s\S]*?\*\//g, '');
+  return text.replace(/\/\*[\s\S]*?(?:\*\/|$)/g, '');
 }
 
 // Check 9 reads EVERY shipped CSS source — the bundled sheet plus each page's inline <style> — and
@@ -252,7 +260,11 @@ export function findTransitionCss(input) {
   const sources = (typeof input === 'string' ? [{ text: input }] : input).map((s) =>
     typeof s === 'string' ? { text: s } : s
   );
-  const cssText = sources.map((s) => s.text).join('\n');
+  // Stripped once, here, so no predicate can read raw text by accident. Before this line the corpus
+  // rules and the per-file tally disagreed about what a comment contains, and the divergence was
+  // documented in a comment instead of removed.
+  const clean = sources.map((s) => ({ path: s.path, text: stripComments(s.text) }));
+  const cssText = clean.map((s) => s.text).join('\n');
   const problems = [];
 
   for (const name of TRANSITION_KEYFRAMES) {
@@ -298,13 +310,20 @@ export function findTransitionCss(input) {
     // Tallied PER SOURCE, never over the joined corpus: all six names legitimately appear once in
     // the bundled sheet, and a page may restate one in its own inline <style>, so a corpus-wide
     // count would flag that legal spread as a repeat — check 8's `spread` lesson, transplanted.
-    // Coverage limit, stated rather than implied: ZERO applications still passes. Check 9 proves
-    // the sheet names the animation, not that any element uses one.
-    for (const src of sources) {
+    // Coverage limits, stated rather than implied, both of this tally's unit and of its subject:
+    // ZERO applications still passes, so check 9 proves the sheet names the animation, not that any
+    // element uses one. And because the unit is a FILE, a name applied once in the shared sheet and
+    // once more in a page's inline <style> — or once in each of two sheets — is two applications on
+    // the page that loads both, and passes here; check 8's per-document reasoning does not transfer
+    // that far, since a stylesheet is shared by every page that links it. The two shapes are the
+    // review's `rr9a-fixtures.mjs` C2/C3 (scratch, gitignored); reachability is measured — the six
+    // shipped pages carry 0 inline <style> blocks, so today this is a Phase 2 authoring risk, not a
+    // live hole. Counting over the corpus instead would refuse the legal spread above: Ruling S
+    // names refusing a correct file as the landmine and accepting an incorrect one as merely loud,
+    // so the miss is named, not cured.
+    for (const src of clean) {
       const applied = [
-        ...stripComments(src.text).matchAll(
-          new RegExp(`view-transition-name:\\s*${name}\\b`, 'g')
-        ),
+        ...src.text.matchAll(new RegExp(`view-transition-name:\\s*${name}\\b`, 'g'))
       ].length;
       if (applied > 1) {
         // The source is named because the finding is per file: `in` a sheet the operator can open.
