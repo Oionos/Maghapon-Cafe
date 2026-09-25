@@ -573,7 +573,12 @@ const isOrders = path === '/my-orders';
             // ≥1024px press toasts "closed" while the panel stays open, and every later press
             // answers "close" again — the back button dead-ends permanently on the desktop.
             window.dispatchEvent(new CustomEvent('maghapon:cart-close'));
-            setPanelOpen(false);
+            // Only when the panel is actually open: closing an already-closed panel changes
+            // nothing, but its focus-restore step still runs and re-asserts `panelTrigger` — set
+            // once, by `if (next && trigger)` in setPanelOpen, and never cleared — over the
+            // drawer's own restore. A desktop user who opened a config drawer after opening the
+            // panel once would land on #cart-open, a node they did not come from.
+            if (panelOpen) setPanelOpen(false);
             notifyBack('Closed the order menu.');
             return;
           }
