@@ -250,12 +250,6 @@
   gap: 0.6rem;
   flex: 0 0 auto;
 }
-/* Same origin as the rule above and one more class in the selector, so this wins without
-   `!important`: the `hidden` attribute is styled only in the UA sheet, which an author
-   `display: flex` outranks. */
-.mobile-topbar-actions[hidden] {
-  display: none;
-}
 .mobile-status {
   padding: 0.35rem 0.7rem;
 }
