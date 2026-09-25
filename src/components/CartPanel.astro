@@ -3,7 +3,13 @@
 // Same cart state as CartDrawer: both go through the store seam (src/lib/store/) and stay in
 // sync through the 'maghapon:cart-changed' window event (dispatched by both surfaces).
 ---
-<aside class="cart-panel" id="cart-panel" aria-labelledby="cart-panel-title" aria-hidden="true">
+<aside
+  class="cart-panel"
+  id="cart-panel"
+  aria-labelledby="cart-panel-title"
+  aria-hidden="true"
+  transition:persist="cart-panel"
+>
   <div class="cart-panel-head">
     <h2 id="cart-panel-title">Your order</h2>
     <button class="cart-panel-close" type="button" data-order-close aria-label="Close order menu">×</button>

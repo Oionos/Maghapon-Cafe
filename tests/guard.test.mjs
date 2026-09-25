@@ -10,8 +10,10 @@ import {
   findUndefinedTokens,
   findIconFontUsage,
   findMissingRoutes,
+  findRouterContract,
   findSpriteSymbols,
   findTokenDrift,
+  PERSIST_KEYS,
   walk,
   WEB_ROUTES,
 } from '../scripts/guard.mjs';
@@ -263,3 +265,72 @@ test('phase-0 reconciliation leaves zero color drift',
     }));
     assert.deepEqual(findTokenDrift(readFileSync(md, 'utf8'), css), []);
   });
+
+// Task 6's router contract. `transition:persist` without an explicit key is measured dead (§4's
+// contract item 4: Astro generates a page-scoped id, so the pair never matches across routes and
+// the node is discarded), and a dropped directive is invisible to every other check — the shell
+// still renders, the swap still happens, only the chrome reloads with the page. So this check reads
+// the built documents for the enable-meta and for the six approved keys, and reports every value it
+// does not approve. Each fixture below is one mutation of the clean document, because a check that
+// only ever sees the clean shape cannot be shown to bite.
+test('findRouterContract flags a missing meta, a rogue key and a generated key', () => {
+  const meta = '<meta name="astro-view-transitions-enabled" content="true">';
+  const allSix = PERSIST_KEYS.map(
+    (k) => `<div data-astro-transition-persist="${k}"></div>`
+  ).join('');
+  const texts = (html, approved = PERSIST_KEYS) =>
+    findRouterContract([{ path: 'dist/x.html', text: html }], approved).map((f) => f.text);
+
+  // Clean: the enable-meta and every approved key present.
+  assert.deepEqual(texts(`<head>${meta}</head><body>${allSix}</body>`), []);
+
+  // No meta at all — reported alongside the vacuity note, never instead of it.
+  assert.ok(texts('<head></head><body></body>').includes('missing enable-meta'));
+
+  // A key that is not on the approved list, even though it is well-formed.
+  assert.ok(
+    texts(
+      `<head>${meta}</head><body>${allSix.replace('cart-drawer', 'cart-closed')}</body>`,
+      PERSIST_KEYS
+    ).some((t) => t.startsWith('key not approved: cart-closed'))
+  );
+
+  // The page-scoped form a bare transition:persist generates (R-1's measured failure).
+  const generated = allSix.replace('nav-rail', 'astro-7jqgbady-1');
+  assert.ok(
+    texts(`<head>${meta}</head><body>${generated}</body>`).some((t) =>
+      t.startsWith('generated key: astro-7jqgbady-1')
+    )
+  );
+
+  // An empty value: paired by nothing, and invisible to a name comparison.
+  assert.ok(
+    texts(`<head>${meta}</head><body>${allSix.replace('="tab-bar"', '=""')}</body>`).includes(
+      'empty key'
+    )
+  );
+
+  // A silently dropped attribute — the vacuous pass this check exists to refuse.
+  const fiveOfSix = PERSIST_KEYS.slice(0, 5)
+    .map((k) => `<div data-astro-transition-persist="${k}"></div>`)
+    .join('');
+  assert.ok(
+    texts(`<head>${meta}</head><body>${fiveOfSix}</body>`).some((t) =>
+      t.startsWith('approved key never emitted')
+    )
+  );
+});
+
+test('every router-contract failure is printable by the guard', () => {
+  // The printer reads exactly `path`, `line`, `text`; a spare field is dropped and the
+  // operator sees `undefined` where the finding should be.
+  const failures = findRouterContract([{ path: 'dist/i.html', text: '<body></body>' }]);
+  assert.ok(failures.length > 0);
+  for (const f of failures) {
+    assert.equal(typeof f.text, 'string');
+    assert.ok(f.text.length > 0);
+    assert.equal(typeof f.path, 'string');
+    assert.ok(Number.isInteger(f.line) && f.line >= 1);
+    assert.equal(f.kind, undefined);
+  }
+});

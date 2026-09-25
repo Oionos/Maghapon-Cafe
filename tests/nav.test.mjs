@@ -8,6 +8,7 @@ import {
   runHooks,
   requestScrollTo,
   takePendingScroll,
+  isRouterActive,
   boot,
   resetNav,
 } from '../src/lib/nav.js';
@@ -59,6 +60,25 @@ test('the pending scroll is a one-shot', () => {
   requestScrollTo('rewards');
   assert.equal(takePendingScroll(), 'rewards');
   assert.equal(takePendingScroll(), null);
+});
+
+// Task 6 gives isRouterActive() its only consumer — initHashNav() asks it before turning a click
+// into a navigate() swap — so the exported name is now pinned rather than dead. The selector is
+// asserted literally because guard check 8 matches the SAME meta in the built HTML by the same
+// name; the two sides drifting is the failure this catches. `doc` is a parameter precisely so this
+// needs no jsdom (§3.3).
+test('isRouterActive reads the router enable-meta by its exact selector', () => {
+  const SELECTOR = '[name="astro-view-transitions-enabled"]';
+  const asked = [];
+  const doc = (hit) => ({
+    querySelector: (sel) => {
+      asked.push(sel);
+      return sel === SELECTOR && hit ? { node: true } : null;
+    },
+  });
+  assert.equal(isRouterActive(doc(true)), true, 'meta present must read as active');
+  assert.equal(isRouterActive(doc(false)), false, 'meta absent must read as inactive');
+  assert.deepEqual(asked, [SELECTOR, SELECTOR], 'must ask for the enable-meta, not any meta');
 });
 
 // I1: every slot resetNav() owns, pinned from Task 3 onward — other files will assume a clean

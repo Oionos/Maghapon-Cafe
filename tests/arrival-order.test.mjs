@@ -18,6 +18,7 @@ const ARRIVAL_ORDER = [
   'initBadgeMirror',
   'initPageScripts',
   'consumePendingScroll',
+  'initHashNav',
 ];
 
 test('arrive() calls the initialisers in the contracted order', () => {

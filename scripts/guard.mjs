@@ -116,6 +116,71 @@ export function findMissingRoutes(filePaths, expected) {
   return [...expected.filter((r) => !have.has(r)), ...extra];
 }
 
+// Task 6: the six nodes the app shell persists across a client-side swap. §4's router contract item
+// 4 is why the VALUE is the contract — a bare `transition:persist` gets a page-scoped generated key
+// (`astro-7jqgbady-1` on one route, `astro-lpt2ysjp-1` on the next for the same element), so
+// old and new never pair, the destination discards the node and the chrome reloads with the page.
+// Frozen here because Task 7's `view-transition-name` list must match it one-for-one.
+export const PERSIST_KEYS = [
+  'nav-rail',
+  'global-controls',
+  'mobile-topbar',
+  'tab-bar',
+  'cart-panel',
+  'cart-drawer',
+];
+
+// The exact shape Astro's `swapFunctions` generates when the directive is left unkeyed.
+const GENERATED_KEY_RE = /^astro-[a-z0-9]{8}-\d+$/;
+
+// The printer formats `path:line text`, so `text` must be the whole human-readable finding:
+// a spare `kind` field is silently dropped and the run prints `undefined` in its place.
+function contractFail(path, text, at = 0, src = '') {
+  return { path, line: src ? src.slice(0, at).split('\n').length : 1, text };
+}
+
+export function findRouterContract(pages, approved = PERSIST_KEYS) {
+  const found = [];
+  const failures = [];
+  for (const page of pages) {
+    // ClientRouter.astro writes this meta; without it astro's router calls preventDefault() and the
+    // browser does a full navigation (§4 item 8), so the swap never happens at all.
+    if (!/<meta\s+name="astro-view-transitions-enabled"/.test(page.text)) {
+      failures.push(contractFail(page.path, 'missing enable-meta'));
+    }
+    for (const m of page.text.matchAll(/data-astro-transition-persist="([^"]*)"/g)) {
+      const key = m[1];
+      found.push(key);
+      const at = m.index;
+      if (!key) {
+        failures.push(contractFail(page.path, 'empty key', at, page.text));
+      } else if (GENERATED_KEY_RE.test(key)) {
+        const why = `generated key: ${key} — write transition:persist="<stable key>"`;
+        failures.push(contractFail(page.path, why, at, page.text));
+      } else if (!approved.includes(key)) {
+        const why = `key not approved: ${key} — add it to PERSIST_KEYS or fix the name`;
+        failures.push(contractFail(page.path, why, at, page.text));
+      }
+    }
+  }
+  // Union rule: `/admin` legitimately lacks `global-controls` and `cart-panel`, and `404.html` and
+  // `/admin` lack `tab-bar` (Ruling J), so keys are checked across ALL pages while the per-page
+  // check is only "no rogue value". A dropped `transition:persist` then surfaces as
+  // `approved key never emitted` rather than as a green run.
+  if (!found.length) {
+    // Appended, not returned instead: the enable-meta findings above are what tell the operator
+    // whether the router is on at all, and a run that traded one for the other answers nothing.
+    failures.push(contractFail('dist', 'no persisted node in any page'));
+    return failures;
+  }
+  for (const key of approved) {
+    if (!found.includes(key)) {
+      failures.push(contractFail('dist', `approved key never emitted: ${key}`));
+    }
+  }
+  return failures;
+}
+
 // Nothing else in the guard reads global.css, so the declaration of what ships was invisible to
 // it: dropping an @import removed real CSS while every check stayed green, and an orphan slice on
 // disk fed findUndefinedTokens definitions that never ship - masking the exact bug class that
@@ -247,6 +312,9 @@ function main() {
         return problems.map((text) => ({ path: 'src/styles/global.css', line: 0, text }));
       },
     ],
+    // `pages` is the .html subset of the build, already carrying `.text`; `route parity` above
+    // consumes the same array, so no projection is needed here either.
+    ['router contract', () => findRouterContract(pages)],
   ];
   // The docs are gitignored, so a fresh clone must still build: guard the check on the file
   // rather than deleting it — a missing DESIGN.md must never read as zero drift. The absence is

@@ -6,6 +6,7 @@ import '@fontsource/fraunces/600.css';
 import '@fontsource/fraunces/700.css';
 import '@fontsource-variable/geist';
  import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 import { Image } from 'astro:assets';
 import logoImg from '../assets/logo.webp';
 import CartDrawer from '../components/CartDrawer.astro';
@@ -35,6 +36,11 @@ const isOrders = path === '/my-orders';
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/images/hero-coffee.jpg" />
+    <!-- Phase 1's app shell. Head, not body: the meta it writes is valid head content only, and
+         transitionEnabledOnThisPage() queries the whole document, so this is correct-by-spec
+         placement rather than a functional requirement. Every route must render it — §4's contract
+         item 8 measures a destination without it aborting the swap into a full document load. -->
+    <ClientRouter />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
@@ -42,7 +48,11 @@ const isOrders = path === '/my-orders';
     <div class="app-shell">
       <!-- Floating global controls: shop status + the single order trigger, top-right, all widths. -->
       {!isAdmin && (
-        <div class="global-controls" id="global-controls">
+        <div
+          class="global-controls"
+          id="global-controls"
+          transition:persist="global-controls"
+        >
           <span class="status-pill global-status" id="status-pill" role="status" aria-label="Shop status: Checking hours…" title="Checking hours…">
             <span class="status-dot" aria-hidden="true"></span>
             <span class="status-text">Checking hours…</span>
@@ -54,7 +64,12 @@ const isOrders = path === '/my-orders';
         </div>
       )}
       <!-- Desktop nav rail (≥768px) -->
-      <aside class="nav-rail" id="nav-rail" aria-label="Site">
+      <aside
+        class="nav-rail"
+        id="nav-rail"
+        aria-label="Site"
+        transition:persist="nav-rail"
+      >
         <a class="brand" href="/" aria-label="Maghapon Café home">
           <Image src={logoImg} alt="Maghapon Café logo" width={40} priority />
           <span class="brand-copy">Maghapon Café<small>Caloocan · Metro Manila</small></span>
@@ -76,7 +91,7 @@ const isOrders = path === '/my-orders';
             <Icon name="shopping-bag" class="rail-icon" size={22} />
             <span class="rail-label">My orders</span>
           </a>
-          <a href="/#rewards" aria-label="Rewards" title="Rewards">
+          <a href="/#rewards" aria-label="Rewards" title="Rewards" data-hash-nav>
             <Icon name="star" class="rail-icon" size={22} />
             <span class="rail-label">Rewards</span>
           </a>
@@ -101,7 +116,7 @@ const isOrders = path === '/my-orders';
         )}
 
         <!-- Mobile compact top bar (≤767px): brand lockup; admin keeps its status pill. -->
-        <header class="mobile-topbar">
+        <header class="mobile-topbar" transition:persist="mobile-topbar">
           <a class="brand" href="/" aria-label="Maghapon Café home">
             <Image src={logoImg} alt="Maghapon Café logo" width={32} priority />
             <span class="brand-copy">Maghapon Café</span>
@@ -162,7 +177,7 @@ const isOrders = path === '/my-orders';
     </div>
 
     {!isAdmin && (
-      <nav class="tab-bar" aria-label="Primary">
+      <nav class="tab-bar" aria-label="Primary" transition:persist="tab-bar">
         <a href="/" class={isHome ? 'is-active' : ''} aria-current={isHome ? 'page' : undefined}>
           <Icon name="house" size={22} />
           <span>Home</span>
@@ -191,10 +206,17 @@ const isOrders = path === '/my-orders';
       import {
         boot,
         consumePendingScroll,
+        isRouterActive,
         normalizePath,
+        requestScrollTo,
         runHooks,
         runPage,
       } from '../lib/nav.js';
+      // Static, not dynamic: <ClientRouter /> above already fetches astro's router client, so a
+      // dynamic import() here would buy a promise branch in a click handler
+      // for zero payload saving.
+      // It is safe only because the router is rendered — see Ruling N in the plan.
+      import { navigate } from 'astro:transitions/client';
 
       // ---- Live open/closed status, computed from Manila time (GMT+8) ----
       function tickClock() {
@@ -469,6 +491,29 @@ const isOrders = path === '/my-orders';
         runPage(location.pathname);
       }
 
+      // The rail's Rewards anchor is the one link in the chrome whose destination is `/` plus a
+      // fragment. With the router on, a browser-native hash jump across pages is a full navigation
+      // (which would drop the app shell), so the click is converted into a swap and the scroll is
+      // handed to the arrival that follows it. `requestScrollTo()` must come *before* `navigate()`,
+      // because arrive() runs during it and consumes whatever is queued. A same-page click returns
+      // early and the browser scrolls on its own. The `isRouterActive` guard is not dead weight for
+      // a future web build: §4's contract item 8 measures a route that fails to render the router
+      // turning the swap into a full document load — this is what keeps the handler honest there.
+      function initHashNav() {
+        document.querySelectorAll('[data-hash-nav]').forEach((link) => {
+          if (link.dataset.hashBound) return;
+          link.dataset.hashBound = '1';
+          link.addEventListener('click', (event) => {
+            if (!isRouterActive(document)) return;
+            const url = new URL(link.href, location.href);
+            if (normalizePath(url.pathname) === normalizePath(location.pathname)) return;
+            event.preventDefault();
+            requestScrollTo(url.hash.slice(1));
+            navigate(url.pathname);
+          });
+        });
+      }
+
       function arrive() {
         initOverlayState();
         initStatusPill();
@@ -479,6 +524,7 @@ const isOrders = path === '/my-orders';
         initBadgeMirror();
         initPageScripts();
         consumePendingScroll();
+        initHashNav();
       }
 
       window.maghaponShell = {
