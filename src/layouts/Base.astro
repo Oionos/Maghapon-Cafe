@@ -212,6 +212,8 @@ const isOrders = path === '/my-orders';
         runHooks,
         runPage,
       } from '../lib/nav.js';
+      import { addArrivalHook } from '../lib/nav.js';
+      import { BACK, createBackPress, EXIT_WINDOW_MS } from '../lib/back.js';
       // Static, not dynamic: <ClientRouter /> above already fetches astro's router client, so a
       // dynamic import() here would buy a promise branch in a click handler
       // for zero payload saving.
@@ -536,6 +538,52 @@ const isOrders = path === '/my-orders';
           return panelOpen;
         },
       };
+
+      // ---- Hardware back seam (spec §6.6) ----
+      const backToast = document.createElement('div');
+      backToast.className = 'back-toast';
+      backToast.id = 'back-toast';
+      backToast.setAttribute('role', 'status');
+
+      function notifyBack(message) {
+        // <body> is the node the router replaces, so this node detaches on every swap. Re-append
+        // rather than assume isConnected survived, and clear the old timer before arming a new
+        // one: a stale timer would otherwise strip .show off a toast that has not finished being
+        // read.
+        if (!backToast.isConnected) document.body.append(backToast);
+        backToast.textContent = message;
+        backToast.classList.add('show');
+        clearTimeout(notifyBack.timer);
+        notifyBack.timer = setTimeout(() => backToast.classList.remove('show'), EXIT_WINDOW_MS);
+      }
+
+      const backPress = createBackPress({
+        isOverlayOpen: () =>
+          Boolean(window.maghaponShell?.drawerOpen) || Boolean(window.maghaponShell?.panelOpen),
+        canGoBack: () => history.length > 1,
+        goBack: () => history.back(),
+        exit: () =>
+          notifyBack('Maghapon Café would close here — the native shell does this in Phase 5.'),
+        notify: (kind) => {
+          if (kind === BACK.CLOSE) {
+            // The decision said "close"; only the component that owns the overlay can do it.
+            window.dispatchEvent(new CustomEvent('maghapon:cart-close'));
+            notifyBack('Closed the order menu.');
+            return;
+          }
+          notifyBack('Press back again to exit.');
+        },
+      });
+
+      // An armed exit must not survive a navigation: back, back would otherwise read as EXIT two
+      // seconds after the user already moved. This goes through addArrivalHook rather than a new
+      // init*() in arrive() precisely so the pinned arrival order in tests/arrival-order.test.mjs
+      // stays the single record of shell-owned sequencing, and a page-owned concern rides the same
+      // hook list CartPanel uses. It must run before boot(arrive), so the hook is registered for
+      // the first arrival too.
+      addArrivalHook(() => backPress.reset());
+
+      window.maghaponBack = { press: () => backPress.press(), reset: () => backPress.reset() };
 
       // Ruling G: read the stored preference once, never on arrival — re-reading it would snap the
       // rail back to storage every time the user collapses it and then navigates.

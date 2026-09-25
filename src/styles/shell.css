@@ -306,3 +306,26 @@
   position: relative;
   display: inline-flex;
 }
+
+/* ---- Hardware back-press toast (Task 8, spec §6.6) ---- */
+/* Sits with the tab-bar rules because its `bottom` clears that bar's height at ≤767px; z-index 70
+   keeps it above the global order cluster (60) and below the tab bar (80) and the drawer (100). */
+.back-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--header-h) + 72px);
+  transform: translate(-50%, 8px);
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--line-light);
+  font-size: 0.85rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+  z-index: 70;
+}
+.back-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
