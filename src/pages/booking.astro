@@ -80,7 +80,9 @@ const guestOptions = Array.from({ length: 20 }, (_, i) => i + 1);
 
     function init({ signal }) {
       // Earliest bookable date = today in Manila time
-      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+      const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+      }).format(new Date());
       document.getElementById('bk-date').min = today;
 
       document.getElementById('booking-form').addEventListener('submit', (e) => {

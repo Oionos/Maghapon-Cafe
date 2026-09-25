@@ -3,18 +3,22 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 // The sequence `arrive()` runs is a contract, not an implementation detail: initOverlayState() must
-// settle `drawerOpen` before syncOrderControls() reads it, and consumePendingScroll() must be last
-// because everything before it can change page height. Reordering is silent on every other test, so
-// the order is asserted where it is written — read off the source, never off a minified bundle.
+// settle `drawerOpen` before syncOrderControls() reads it, initChromeNav() must run before anything
+// measures or scrolls to the surface it highlights, and consumePendingScroll() must sit after every
+// step that can change page height, with initHashNav() last as the plan's convention. Reordering is
+// silent on every other test, so the order is asserted where it is written — read off the source,
+// never off a minified bundle.
 const ARRIVAL_ORDER = [
   'initOverlayState',
   'initStatusPill',
+  'initChromeNav',
   'initReveals',
   'initOrderSurface',
   'initRailCollapse',
   'initBadgeMirror',
   'initPageScripts',
   'consumePendingScroll',
+  'initHashNav',
 ];
 
 test('arrive() calls the initialisers in the contracted order', () => {

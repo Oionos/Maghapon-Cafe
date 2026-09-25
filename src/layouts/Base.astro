@@ -76,7 +76,7 @@ const isOrders = path === '/my-orders';
             <Icon name="shopping-bag" class="rail-icon" size={22} />
             <span class="rail-label">My orders</span>
           </a>
-          <a href="/#rewards" aria-label="Rewards" title="Rewards">
+          <a href="/#rewards" data-hash-nav aria-label="Rewards" title="Rewards">
             <Icon name="star" class="rail-icon" size={22} />
             <span class="rail-label">Rewards</span>
           </a>
@@ -106,14 +106,14 @@ const isOrders = path === '/my-orders';
             <Image src={logoImg} alt="Maghapon Café logo" width={32} priority />
             <span class="brand-copy">Maghapon Café</span>
           </a>
-          {isAdmin && (
-            <div class="mobile-topbar-actions">
-              <span class="status-pill mobile-status" role="status" aria-label="Shop status: Checking hours…" title="Checking hours…">
-                <span class="status-dot" aria-hidden="true"></span>
-                <span class="status-text">Checking hours…</span>
-              </span>
-            </div>
-          )}
+          {/* Ruling E: rendered on every route, so the persisted topbar has the same children
+              whichever page a swap arrives from; initChromeNav() flips `hidden` per route. */}
+          <div class="mobile-topbar-actions" hidden={isAdmin ? undefined : true}>
+            <span class="status-pill mobile-status" role="status" aria-label="Shop status: Checking hours…" title="Checking hours…">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="status-text">Checking hours…</span>
+            </span>
+          </div>
         </header>
 
         <main id="main-content">
@@ -191,10 +191,13 @@ const isOrders = path === '/my-orders';
       import {
         boot,
         consumePendingScroll,
+        isRouterActive,
         normalizePath,
+        requestScrollTo,
         runHooks,
         runPage,
       } from '../lib/nav.js';
+      import { navigate } from 'astro:transitions/client';
 
       // ---- Live open/closed status, computed from Manila time (GMT+8) ----
       function tickClock() {
@@ -245,7 +248,11 @@ const isOrders = path === '/my-orders';
         return document.getElementById('cart-panel');
       }
 
-      // Ruling F: `#nav-rail` and `#rail-toggle` render on every route, so this one stays cached.
+      // Ruling F + I: cached, and bound through this same reference (initRailCollapse) so the
+      // listener and the aria writes can never point at two different nodes. Safe because
+      // `.nav-rail` is one of the six nodes Task 6 gives a stable `transition:persist` key, so a
+      // swap hands back this very element. "Renders on every route" alone would not be enough:
+      // a swap replaces the body subtree even when every route's markup is identical.
       const railToggle = document.getElementById('rail-toggle');
       const desktopQuery = window.matchMedia('(min-width: 1024px)');
       const railQuery = window.matchMedia('(min-width: 1024px)');
@@ -273,8 +280,6 @@ const isOrders = path === '/my-orders';
           toggle.setAttribute('aria-label', open ? 'Close order menu' : 'Open order menu');
           toggle.title = open ? 'Close order menu' : 'Open order menu';
         });
-        const panel = panelEl();
-        if (panel) panel.setAttribute('aria-hidden', String(!panelOpen));
       }
 
       function applyPanel() {
@@ -283,6 +288,8 @@ const isOrders = path === '/my-orders';
         if (!shell) return;
         // panelOpen is the truth; the class and aria pair are its projections onto nodes that a
         // swap may have just replaced. Skipping this is the inverted-toggle defect Ruling L names.
+        // This is the only writer of #cart-panel's aria-hidden: a second one that used `!panelOpen`
+        // instead of `!on` would claim the panel is visible below the breakpoint that hides it.
         const on = panelOpen && usesPanel() && Boolean(panel);
         shell.classList.toggle('cart-panel-open', on);
         panel?.setAttribute('aria-hidden', String(!on));
@@ -381,14 +388,34 @@ const isOrders = path === '/my-orders';
         // does. Re-assert the lock from the one truth the shell already keeps, and refuse to carry
         // an open customer drawer into /admin, which today always loads closed.
         if (drawerOpen && normalizePath(location.pathname) === '/admin') {
+          // Synchronous: the drawer's listener flips drawerOpen before this line returns, so the
+          // assignment below reads settled truth. Not returning also covers the case closeDrawer()
+          // early-returns on (CartDrawer.astro:71) — the lock then stays asserted, matching the
+          // truth the shell keeps, instead of being left to whatever the DOM happened to hold.
           window.dispatchEvent(new CustomEvent('maghapon:cart-close'));
-          return; // the drawer's own closeDrawer() clears the lock and fires drawer-state:false
         }
         document.body.style.overflow = drawerOpen ? 'hidden' : '';
       }
 
       function initStatusPill() {
         tickClock();
+      }
+
+      // Ruling E: nav state is derived per arrival instead of baked into each route's markup,
+      // because a persisted node keeps the DOM the first route wrote — so the highlight a swap
+      // leaves behind is whatever that route rendered. Server-rendered class/aria-current stay,
+      // so no-JS still gets a correct highlight; this function has the last word when JS runs.
+      function initChromeNav() {
+        const path = normalizePath(location.pathname);
+        document.querySelectorAll('.rail-nav a[href], .tab-bar a[href]').forEach((link) => {
+          const url = new URL(link.href, location.href);
+          const active = !url.hash && normalizePath(url.pathname) === path;
+          link.classList.toggle('is-active', active);
+          if (active) link.setAttribute('aria-current', 'page');
+          else link.removeAttribute('aria-current');
+        });
+        const actions = document.querySelector('.mobile-topbar-actions');
+        if (actions) actions.hidden = path !== '/admin';
       }
 
       function initReveals() {
@@ -407,11 +434,10 @@ const isOrders = path === '/my-orders';
       }
 
       function initRailCollapse() {
-        const toggle = document.getElementById('rail-toggle');
-        if (!toggle) return;
-        if (!toggle.dataset.railBound) {
-          toggle.dataset.railBound = '1';
-          toggle.addEventListener('click', () => setRailCollapsed(!railCollapsed));
+        if (!railToggle) return;
+        if (!railToggle.dataset.railBound) {
+          railToggle.dataset.railBound = '1';
+          railToggle.addEventListener('click', () => setRailCollapsed(!railCollapsed));
         }
         applyRail();
       }
@@ -420,10 +446,12 @@ const isOrders = path === '/my-orders';
       // CartDrawer updates #cart-count (global controls); keep the mobile badges in sync.
       function initBadgeMirror() {
         const badge = document.getElementById('cart-count');
-        const mirrors = document.querySelectorAll('[data-cart-badge]');
-        if (!badge || !mirrors.length) return;
+        if (!badge) return;
         const sync = () => {
-          mirrors.forEach((m) => {
+          // Re-queried per call, never captured: this observer is installed once (badgeBound) and a
+          // swap can hand back brand-new [data-cart-badge] nodes, so a captured list would keep
+          // writing to detached mirrors and the live badge would go silently stale.
+          document.querySelectorAll('[data-cart-badge]').forEach((m) => {
             m.textContent = badge.textContent;
             m.hidden = badge.hidden;
           });
@@ -444,15 +472,36 @@ const isOrders = path === '/my-orders';
         runPage(location.pathname);
       }
 
+      // Anchors that name a section of another route (`/`'s Rewards). Inert while the router is
+      // off — the browser's own full load and hash scroll are left untouched — and converted into
+      // a swap once ClientRouter is rendered, so the shell is not torn down for an in-page anchor.
+      function initHashNav() {
+        document.querySelectorAll('[data-hash-nav]').forEach((link) => {
+          if (link.dataset.hashBound) return;
+          link.dataset.hashBound = '1';
+          link.addEventListener('click', (event) => {
+            if (!isRouterActive(document)) return;
+            const url = new URL(link.href, location.href);
+            if (normalizePath(url.pathname) === normalizePath(location.pathname)) return;
+            event.preventDefault();
+            // Queue before navigating: this arrival runs while navigate() is still in flight.
+            requestScrollTo(url.hash.slice(1));
+            navigate(url.pathname);
+          });
+        });
+      }
+
       function arrive() {
         initOverlayState();
         initStatusPill();
+        initChromeNav();
         initReveals();
         initOrderSurface();
         initRailCollapse();
         initBadgeMirror();
         initPageScripts();
         consumePendingScroll();
+        initHashNav();
       }
 
       window.maghaponShell = {
