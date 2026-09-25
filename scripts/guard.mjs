@@ -214,23 +214,45 @@ function balancedBody(text, open) {
   return '';
 }
 
-// The `: reduce` form only, and the block's own body: a `no-preference` block is the opposite
-// claim, and a block that merely mentions the root pair does not stop anything. There is more than
-// one reduce block on purpose — Astro's injected head CSS opens the bundle with a `(*)` block,
-// motion.css has carried the component-motion block since Phase 0, and §6.4 adds the one that
-// stops the root pair. Reading only the first would make this check fail a file that is correct
-// (measured: the bundle's first block is Astro's and never names `(root)`), so the rule is "some
-// block does".
+// Two accepted forms of the feature test — `: reduce` and the bare `(prefers-reduced-motion)` —
+// and never `no-preference`, which asserts the opposite. The bare form is real CSS and it is
+// already in this build: Astro's own injected head CSS, which opens the bundle, is written that
+// way (measured 2026-09-26 over `dist/_astro/*.css`). Ruling S: a check that refuses a correct
+// file is a landmine, because it also prints a false finding about it — `no prefers-reduced-motion
+// block` — while a check that accepts an incorrect one is merely loud.
+//
+// Each block's own body is what is read: a block that merely mentions the root pair does not stop
+// anything. There is more than one reduce block on purpose — Astro's head CSS, motion.css's
+// component-motion block from Phase 0, and §6.4's root stop — so reading only the first would
+// make this check fail a file that is correct (measured: the bundle's first block is Astro's and
+// never names `(root)`). The rule is therefore "some block does".
 function reducedMotionBlocks(cssText) {
   const bodies = [];
-  const open = /@media[^{]*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)[^{]*\{/g;
+  const open = /@media[^{]*\(\s*prefers-reduced-motion\s*(?::\s*reduce\s*)?\)[^{]*\{/g;
   for (const m of cssText.matchAll(open)) {
     bodies.push(balancedBody(cssText, m.index + m[0].length - 1));
   }
   return bodies;
 }
 
-export function findTransitionCss(cssText) {
+// A commented-out declaration is not a declaration: without this, a disabled `view-transition-name`
+// line left in the sheet feeds the application count below and the check refuses a correct file.
+function stripComments(text) {
+  return text.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+// Check 9 reads EVERY shipped CSS source — the bundled sheet plus each page's inline <style> — and
+// takes them as `{ path, text }` objects (bare strings are accepted for single-corpus callers)
+// rather than as one pre-joined blob, because the two rules it enforces have different scopes: the
+// keyframes and carve-out rules are corpus-wide on purpose (a `@keyframes` defined in any one file
+// is defined), while a name application is per source, exactly as check 8 counts persist keys per
+// page. Every shipped CSS source is passed in, not just the bundle, because the animation this
+// check exists to catch arrives from Astro's own CSS rather than from motion.css.
+export function findTransitionCss(input) {
+  const sources = (typeof input === 'string' ? [{ text: input }] : input).map((s) =>
+    typeof s === 'string' ? { text: s } : s
+  );
+  const cssText = sources.map((s) => s.text).join('\n');
   const problems = [];
 
   for (const name of TRANSITION_KEYFRAMES) {
@@ -251,6 +273,12 @@ export function findTransitionCss(cssText) {
     }
   }
 
+  // Coverage limit, named because a text scan cannot see past the rule it is reading: three
+  // later-override shapes leave these predicates green while the browser animates anyway —
+  // `animation` redefined for the same selector later in the cascade, a later `animation` shorthand
+  // that resets the longhand, and a `!important` from a later rule beating an un-`!important`
+  // carve-out. Phase 2's restyle is where an authored override could arrive, and a browser
+  // measurement, not this guard, owns it.
   for (const name of TRANSITION_NAMES) {
     // All three forms, not any one of them: `group` alone sizes the snapshot but still cross-fades
     // its old and new images, so a half-carved node keeps the "the tab bar reloaded" tell Ruling C
@@ -267,12 +295,23 @@ export function findTransitionCss(cssText) {
     }
     // One name may name one element per page, so a second application of the same name breaks the
     // swap's pairing the same way a duplicate persist key does — and no other check sees the CSS.
-    const applied = [
-      ...cssText.matchAll(new RegExp(`view-transition-name:\\s*${name}\\b`, 'g')),
-    ].length;
-    if (applied > 1) {
-      const why = `${name} is applied ${applied} times — one name may name one element`;
-      problems.push(`view-transition-name: ${why}`);
+    // Tallied PER SOURCE, never over the joined corpus: all six names legitimately appear once in
+    // the bundled sheet, and a page may restate one in its own inline <style>, so a corpus-wide
+    // count would flag that legal spread as a repeat — check 8's `spread` lesson, transplanted.
+    // Coverage limit, stated rather than implied: ZERO applications still passes. Check 9 proves
+    // the sheet names the animation, not that any element uses one.
+    for (const src of sources) {
+      const applied = [
+        ...stripComments(src.text).matchAll(
+          new RegExp(`view-transition-name:\\s*${name}\\b`, 'g')
+        ),
+      ].length;
+      if (applied > 1) {
+        // The source is named because the finding is per file: `in` a sheet the operator can open.
+        const where = src.path ? ` in ${src.path}` : '';
+        const why = `${name} is applied ${applied} times${where} — one name may name one element`;
+        problems.push(`view-transition-name: ${why}`);
+      }
     }
   }
 
@@ -436,13 +475,23 @@ function main() {
     [
       'transition css',
       () => {
-        // Over BOTH sources of shipped CSS: the animation this branch exists to catch is the one
-        // Astro injects into <head> as an inline <style>, which never appears in dist/_astro/*.css.
+        // Over BOTH sources of shipped CSS: the second animation this check exists to catch (Ruling
+        // B) arrives from Astro's own view-transition CSS, not from motion.css. Measured 2026-09-26
+        // over `dist/`: that CSS lands in the single bundled `.css` sheet today and no page carries
+        // an inline `<style>`, but a page-level `<style>` is a legal Astro construct, so both kinds
+        // stay inputs rather than one being assumed away.
+        // Each stays a separate source: the corpus rules join them inside the check, while a name
+        // application is counted per file — one page's block must not read as a second copy of the
+        // sheet's declaration, which is check 8's per-page lesson.
         const sheets = distFiles.filter((f) => f.path.endsWith('.css'));
         const inline = pages.flatMap((p) =>
-          [...p.text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1])
+          [...p.text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => ({
+            path: `${p.path} <style>`,
+            text: m[1],
+          }))
         );
-        const problems = findTransitionCss([...sheets.map((f) => f.text), ...inline].join('\n'));
+        const sources = [...sheets.map((f) => ({ path: f.path, text: f.text })), ...inline];
+        const problems = findTransitionCss(sources);
         if (!problems.length) return [];
         // The same {path, line, text} shape `style imports` above uses: a bare string would print
         // `undefined` in the place where the finding belongs.

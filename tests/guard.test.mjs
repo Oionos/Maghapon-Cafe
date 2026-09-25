@@ -498,3 +498,107 @@ test('findTransitionCss needs the keyframes, the root wiring and a reduced-motio
     ).some((t) => t.startsWith('astro-fade is a second animation'))
   );
 });
+
+// ---- Ruling S: check 9's three testable hardening items ------------------------------------
+// The ruling's fourth item is the coverage-limit comments in guard.mjs, which state what no fixture
+// here can pin: zero applications still passes, and a later cascade override defeats the scan.
+// Every fixture below is one mutation of an otherwise compliant sheet, so an assertion can fail
+// only for the predicate it names. `node_modules/.cache/maghapon/t9a-mutants.mjs` replays these
+// against single-mutation copies of guard.mjs and prints the matrix that shows each one bites.
+
+// The body a compliant reduced-motion block must carry: both root pseudo-elements, `!important` —
+// a Task 7 cascade test proved the longhand loses the root pair's animation without it, so the
+// requirement is load-bearing and none of the widening below touches it.
+const ROOT_STOP =
+  '::view-transition-old(root),::view-transition-new(root){animation:none!important}';
+const BARE = `@media (prefers-reduced-motion){${ROOT_STOP}}`;
+const VALUE = `@media (prefers-reduced-motion:reduce){${ROOT_STOP}}`;
+const INVERTED = `@media (prefers-reduced-motion:no-preference){${ROOT_STOP}}`;
+
+// A fully compliant sheet carrying `reduced` as its stop block. Written out again here instead of
+// being extracted from the check-9 test above: that fixture is the one the Task 7 re-review
+// reproduced byte-for-byte against a commit, and resharing it would move the ground under an
+// assertion someone has already verified.
+const sheetPlus = (reduced) =>
+  [
+    '@keyframes maghapon-page-out{to{opacity:0}}',
+    '@keyframes maghapon-page-in{from{opacity:0;transform:translateY(8px)}}',
+    '::view-transition-old(root){animation:maghapon-page-out 420ms both}' +
+      '::view-transition-new(root){animation:maghapon-page-in 420ms both}',
+    TRANSITION_NAMES.map(
+      (n) =>
+        `::view-transition-group(${n}),::view-transition-old(${n}),` +
+        `::view-transition-new(${n}){animation:none;mix-blend-mode:normal}`
+    ).join(''),
+    reduced,
+  ].join('\n');
+
+// Item 1. The bare form is real CSS, and it is how Astro writes its own injected head block — which
+// sits at the top of this project's shipped sheet today. The old `: reduce`-only matcher therefore
+// refused a correct file and printed `no prefers-reduced-motion block` about it. A check that
+// complains about a right file is a landmine; `no-preference` asserts the opposite of a stop, so it
+// stays refused — here carrying the very body that passes in the other two forms.
+test('findTransitionCss accepts the bare reduced form and refuses no-preference', () => {
+  assert.deepEqual(findTransitionCss(sheetPlus(BARE)), []);
+  assert.deepEqual(findTransitionCss(sheetPlus(VALUE)), []);
+  assert.deepEqual(findTransitionCss(sheetPlus(INVERTED)), ['no prefers-reduced-motion block']);
+});
+
+// Item 2 — check 8's `spread` lesson transplanted to CSS. Unreachable in today's build and named as
+// such: measured 2026-09-26 over `dist/`, the six built pages carry 0 inline `<style>` blocks and
+// all six names live in one sheet. Implemented anyway because Phase 2 puts styling back into
+// components, and the first inline declaration would then read as a duplicate of the sheet's.
+test('findTransitionCss counts a name per source, not per corpus (unreachable today)', () => {
+  const named = (n) => `.x{view-transition-name:${n}}`;
+
+  // The legal spread: the sheet applies the name once, one page's inline block restates it. The
+  // corpus-wide tally reported this as `applied 2 times` — a correct build refused.
+  assert.deepEqual(
+    findTransitionCss([
+      { path: 'dist/_astro/Base.css', text: sheetPlus(VALUE) + named('maghapon-tab-bar') },
+      { path: 'dist/index.html <style>', text: named('maghapon-tab-bar') },
+    ]),
+    []
+  );
+
+  // The real repeat is inside one source, and the finding has to name which one: a per-file rule
+  // whose message cannot say the file tells the operator nothing they can open.
+  assert.deepEqual(
+    findTransitionCss([
+      { path: 'dist/_astro/Base.css', text: sheetPlus(VALUE) },
+      {
+        path: 'dist/menu.html <style>',
+        text: named('maghapon-cart-panel') + named('maghapon-cart-panel'),
+      },
+    ]),
+    [
+      'view-transition-name: maghapon-cart-panel is applied 2 times in dist/menu.html <style>' +
+        ' — one name may name one element',
+    ]
+  );
+});
+
+// Item 3 — a commented-out declaration used to feed the count, so parking a rule mid-restyle (the
+// normal thing to do with a disabled `view-transition-name`) made check 9 refuse a correct file.
+test('a commented-out view-transition-name is not an application', () => {
+  const named = (n) => `.x{view-transition-name:${n}}`;
+  const dead = (n) => `/* .y{view-transition-name:${n}} */`;
+
+  // One live application plus its disabled twin counts 1, which is clean.
+  assert.deepEqual(
+    findTransitionCss(
+      sheetPlus(VALUE) + named('maghapon-tab-bar') + dead('maghapon-tab-bar')
+    ),
+    []
+  );
+
+  // Stripping is not silencing: two live applications behind a comment still count 2. Same string
+  // as the check-9 test above, because a single-source input has no file to name in it.
+  assert.deepEqual(
+    findTransitionCss(
+      sheetPlus(VALUE) + dead('maghapon-tab-bar') + named('maghapon-tab-bar') +
+        named('maghapon-tab-bar')
+    ),
+    ['view-transition-name: maghapon-tab-bar is applied 2 times — one name may name one element']
+  );
+});
