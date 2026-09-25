@@ -188,6 +188,14 @@ const isOrders = path === '/my-orders';
     <CartDrawer />
 
     <script>
+      import {
+        boot,
+        consumePendingScroll,
+        normalizePath,
+        runHooks,
+        runPage,
+      } from '../lib/nav.js';
+
       // ---- Live open/closed status, computed from Manila time (GMT+8) ----
       function tickClock() {
         const pills = document.querySelectorAll('.status-pill');
@@ -209,7 +217,6 @@ const isOrders = path === '/my-orders';
           pill.title = fullText;
         });
       }
-      tickClock();
       setInterval(tickClock, 60000);
 
       // ---- Fade-up reveals on scroll (IntersectionObserver, no library) ----
@@ -223,25 +230,37 @@ const isOrders = path === '/my-orders';
           }),
         { threshold: 0.12 }
       );
-      document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
 
       // ---- Shared order-surface coordinator ----
       // The panel and drawer are both rendered once; this coordinator chooses exactly one
       // surface for the current breakpoint instead of allowing controls to stack them.
-      const shell = document.querySelector('.app-shell');
-      const panel = document.getElementById('cart-panel');
+      // Ruling I: `.app-shell` and `#cart-panel` are looked up on every call and never cached —
+      // `#cart-panel` is rendered `{!isAdmin}`, so one trip through /admin replaces the node a
+      // cached reference would still be pointing at.
+      function shellEl() {
+        return document.querySelector('.app-shell');
+      }
+
+      function panelEl() {
+        return document.getElementById('cart-panel');
+      }
+
+      // Ruling F: `#nav-rail` and `#rail-toggle` render on every route, so this one stays cached.
       const railToggle = document.getElementById('rail-toggle');
-      const orderToggles = [...document.querySelectorAll('[data-order-toggle]')];
       const desktopQuery = window.matchMedia('(min-width: 1024px)');
       const railQuery = window.matchMedia('(min-width: 1024px)');
-      const panelClose = panel?.querySelector('[data-order-close]');
+      const panelClose = () => panelEl()?.querySelector('[data-order-close]') ?? null;
       const RAIL_STORAGE_KEY = 'maghapon-rail-collapsed';
+      // Rulings G + L: these are the truth. Every class and aria pair on a node is a projection of
+      // them, re-derived on arrival by applyPanel()/applyRail() — never read back off the DOM.
+      let orderToggles = [];
       let panelOpen = false;
       let drawerOpen = false;
       let panelTrigger = null;
+      let railCollapsed = false;
 
       function usesPanel() {
-        return desktopQuery.matches && Boolean(panel);
+        return desktopQuery.matches && Boolean(panelEl());
       }
 
       function syncOrderControls() {
@@ -254,23 +273,34 @@ const isOrders = path === '/my-orders';
           toggle.setAttribute('aria-label', open ? 'Close order menu' : 'Open order menu');
           toggle.title = open ? 'Close order menu' : 'Open order menu';
         });
+        const panel = panelEl();
         if (panel) panel.setAttribute('aria-hidden', String(!panelOpen));
       }
 
+      function applyPanel() {
+        const shell = shellEl();
+        const panel = panelEl();
+        if (!shell) return;
+        // panelOpen is the truth; the class and aria pair are its projections onto nodes that a
+        // swap may have just replaced. Skipping this is the inverted-toggle defect Ruling L names.
+        const on = panelOpen && usesPanel() && Boolean(panel);
+        shell.classList.toggle('cart-panel-open', on);
+        panel?.setAttribute('aria-hidden', String(!on));
+      }
+
       function setPanelOpen(next, trigger = null) {
-        if (!shell || !panel || !usesPanel()) {
+        if (!shellEl() || !panelEl() || !usesPanel()) {
           panelOpen = false;
-          shell?.classList.remove('cart-panel-open');
+          applyPanel();
           syncOrderControls();
           return;
         }
         panelOpen = next;
         if (next && trigger) panelTrigger = trigger;
-        shell.classList.toggle('cart-panel-open', next);
-        panel.setAttribute('aria-hidden', String(!next));
+        applyPanel();
         syncOrderControls();
         if (next) {
-          window.requestAnimationFrame(() => panelClose?.focus());
+          window.requestAnimationFrame(() => panelClose()?.focus());
         } else if (panelTrigger?.isConnected) {
           panelTrigger.focus();
         }
@@ -289,7 +319,6 @@ const isOrders = path === '/my-orders';
         window.dispatchEvent(new CustomEvent('maghapon:cart-toggle', { detail: { trigger } }));
       }
 
-      orderToggles.forEach((toggle) => toggle.addEventListener('click', handleOrderToggle));
       document.addEventListener('click', (event) => {
         if (event.target.closest('[data-order-close]')) setPanelOpen(false);
       });
@@ -300,6 +329,7 @@ const isOrders = path === '/my-orders';
       });
 
       function syncRailToggle() {
+        const shell = shellEl();
         if (!railToggle || !shell) return;
         const collapsed = shell.classList.contains('rail-collapsed');
         railToggle.setAttribute('aria-expanded', String(!collapsed));
@@ -315,18 +345,20 @@ const isOrders = path === '/my-orders';
         }
       }
 
-      function setRailCollapsed(next, persist = true) {
+      function applyRail() {
+        const shell = shellEl();
         if (!shell) return;
-        const collapsed = railQuery.matches && next;
-        shell.classList.toggle('rail-collapsed', collapsed);
-        if (persist && railQuery.matches) localStorage.setItem(RAIL_STORAGE_KEY, String(collapsed));
+        shell.classList.toggle('rail-collapsed', railQuery.matches && railCollapsed);
         syncRailToggle();
       }
 
-      setRailCollapsed(storedRailPreference(), false);
-      railToggle?.addEventListener('click', () => {
-        setRailCollapsed(!shell.classList.contains('rail-collapsed'));
-      });
+      function setRailCollapsed(next, persist = true) {
+        railCollapsed = Boolean(next);
+        if (persist && railQuery.matches) {
+          localStorage.setItem(RAIL_STORAGE_KEY, String(railCollapsed));
+        }
+        applyRail();
+      }
 
       const onDesktopBreakpointChange = () => {
         if (usesPanel()) {
@@ -335,16 +367,61 @@ const isOrders = path === '/my-orders';
         setPanelOpen(false);
         syncOrderControls();
       };
-      const onRailBreakpointChange = () => setRailCollapsed(storedRailPreference(), false);
+      const onRailBreakpointChange = applyRail;
       desktopQuery.addEventListener('change', onDesktopBreakpointChange);
       railQuery.addEventListener('change', onRailBreakpointChange);
-      syncOrderControls();
+
+      // ---- Per-arrival initialisers ----
+      // Every binding that touches a node lives here, guarded by a subsystem-named data-bound flag,
+      // because one node can host two subsystems (#cart-open is an order toggle AND the badge
+      // source) and because a swap can hand any of them back as a brand-new element.
+      function initOverlayState() {
+        // Ruling M: <body> is the node the router replaces, so the modal scroll lock — set at
+        // CartDrawer.astro:64/:72 — does not survive a swap, while the drawer's own .open class
+        // does. Re-assert the lock from the one truth the shell already keeps, and refuse to carry
+        // an open customer drawer into /admin, which today always loads closed.
+        if (drawerOpen && normalizePath(location.pathname) === '/admin') {
+          window.dispatchEvent(new CustomEvent('maghapon:cart-close'));
+          return; // the drawer's own closeDrawer() clears the lock and fires drawer-state:false
+        }
+        document.body.style.overflow = drawerOpen ? 'hidden' : '';
+      }
+
+      function initStatusPill() {
+        tickClock();
+      }
+
+      function initReveals() {
+        document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+      }
+
+      function initOrderSurface() {
+        orderToggles = [...document.querySelectorAll('[data-order-toggle]')];
+        orderToggles.forEach((toggle) => {
+          if (toggle.dataset.orderBound) return;
+          toggle.dataset.orderBound = '1';
+          toggle.addEventListener('click', handleOrderToggle);
+        });
+        applyPanel();
+        syncOrderControls();
+      }
+
+      function initRailCollapse() {
+        const toggle = document.getElementById('rail-toggle');
+        if (!toggle) return;
+        if (!toggle.dataset.railBound) {
+          toggle.dataset.railBound = '1';
+          toggle.addEventListener('click', () => setRailCollapsed(!railCollapsed));
+        }
+        applyRail();
+      }
 
       // ---- Mirror the cart badge to the mobile buttons ----
       // CartDrawer updates #cart-count (global controls); keep the mobile badges in sync.
-      const badge = document.getElementById('cart-count');
-      const mirrors = document.querySelectorAll('[data-cart-badge]');
-      if (badge && mirrors.length) {
+      function initBadgeMirror() {
+        const badge = document.getElementById('cart-count');
+        const mirrors = document.querySelectorAll('[data-cart-badge]');
+        if (!badge || !mirrors.length) return;
         const sync = () => {
           mirrors.forEach((m) => {
             m.textContent = badge.textContent;
@@ -352,8 +429,46 @@ const isOrders = path === '/my-orders';
           });
         };
         sync();
-        new MutationObserver(sync).observe(badge, { attributes: true, childList: true, subtree: true });
+        if (!badge.dataset.badgeBound) {
+          badge.dataset.badgeBound = '1';
+          new MutationObserver(sync).observe(badge, {
+            attributes: true,
+            childList: true,
+            subtree: true,
+          });
+        }
       }
+
+      function initPageScripts() {
+        runHooks();
+        runPage(location.pathname);
+      }
+
+      function arrive() {
+        initOverlayState();
+        initStatusPill();
+        initReveals();
+        initOrderSurface();
+        initRailCollapse();
+        initBadgeMirror();
+        initPageScripts();
+        consumePendingScroll();
+      }
+
+      window.maghaponShell = {
+        arrive,
+        get drawerOpen() {
+          return drawerOpen;
+        },
+        get panelOpen() {
+          return panelOpen;
+        },
+      };
+
+      // Ruling G: read the stored preference once, never on arrival — re-reading it would snap the
+      // rail back to storage every time the user collapses it and then navigates.
+      railCollapsed = storedRailPreference();
+      boot(arrive);
     </script>
   </body>
 </html>
