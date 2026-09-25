@@ -2,6 +2,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BACK, EXIT_WINDOW_MS, decideBack, createBackPress } from '../src/lib/back.js';
 
+// BACK is an enum whose values press() compares against BACK's OWN properties, so deleting one
+// makes both sides of the comparison `undefined` and every behavioural test below still passes.
+// The literals are pinned here, at the import, because nowhere else can their absence be seen.
+test('BACK is exactly the four string literals the native layer sends', () => {
+  assert.deepEqual(BACK, {
+    CLOSE: 'close',
+    BACK: 'back',
+    ARM_EXIT: 'arm-exit',
+    EXIT: 'exit',
+  });
+});
+
 test('an open overlay closes before anything else is considered', () => {
   assert.deepEqual(
     decideBack({ overlayOpen: true, canGoBack: true, now: 0, armedAt: 1234 }),
