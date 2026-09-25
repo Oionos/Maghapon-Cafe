@@ -76,7 +76,7 @@ const isOrders = path === '/my-orders';
             <Icon name="shopping-bag" class="rail-icon" size={22} />
             <span class="rail-label">My orders</span>
           </a>
-          <a href="/#rewards" data-hash-nav aria-label="Rewards" title="Rewards">
+          <a href="/#rewards" aria-label="Rewards" title="Rewards">
             <Icon name="star" class="rail-icon" size={22} />
             <span class="rail-label">Rewards</span>
           </a>
@@ -191,13 +191,11 @@ const isOrders = path === '/my-orders';
       import {
         boot,
         consumePendingScroll,
-        isRouterActive,
         normalizePath,
         requestScrollTo,
         runHooks,
         runPage,
       } from '../lib/nav.js';
-      import { navigate } from 'astro:transitions/client';
 
       // ---- Live open/closed status, computed from Manila time (GMT+8) ----
       function tickClock() {
@@ -472,25 +470,6 @@ const isOrders = path === '/my-orders';
         runPage(location.pathname);
       }
 
-      // Anchors that name a section of another route (`/`'s Rewards). Inert while the router is
-      // off — the browser's own full load and hash scroll are left untouched — and converted into
-      // a swap once ClientRouter is rendered, so the shell is not torn down for an in-page anchor.
-      function initHashNav() {
-        document.querySelectorAll('[data-hash-nav]').forEach((link) => {
-          if (link.dataset.hashBound) return;
-          link.dataset.hashBound = '1';
-          link.addEventListener('click', (event) => {
-            if (!isRouterActive(document)) return;
-            const url = new URL(link.href, location.href);
-            if (normalizePath(url.pathname) === normalizePath(location.pathname)) return;
-            event.preventDefault();
-            // Queue before navigating: this arrival runs while navigate() is still in flight.
-            requestScrollTo(url.hash.slice(1));
-            navigate(url.pathname);
-          });
-        });
-      }
-
       function arrive() {
         initOverlayState();
         initStatusPill();
@@ -501,7 +480,6 @@ const isOrders = path === '/my-orders';
         initBadgeMirror();
         initPageScripts();
         consumePendingScroll();
-        initHashNav();
       }
 
       window.maghaponShell = {
