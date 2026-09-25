@@ -133,6 +133,12 @@ export const PERSIST_KEYS = [
 // The exact shape Astro's `swapFunctions` generates when the directive is left unkeyed.
 const GENERATED_KEY_RE = /^astro-[a-z0-9]{8}-\d+$/;
 
+// Task 7: a key is a pairing handle for the swap AND, once §6.4 gives every key a
+// `view-transition-name`, the selector that picks a snapshot group. One name can only name one
+// element per page, so a repeat is reported even though presence/approved/non-empty all pass.
+const DUPLICATE_KEY_TEXT = (key) =>
+  `duplicate key on one page: ${key} — one node per name; a repeat breaks the pair`;
+
 // The printer formats `path:line text`, so `text` must be the whole human-readable finding:
 // a spare `kind` field is silently dropped and the run prints `undefined` in its place.
 function contractFail(path, text, at = 0, src = '') {
@@ -148,10 +154,18 @@ export function findRouterContract(pages, approved = PERSIST_KEYS) {
     if (!/<meta\s+name="astro-view-transitions-enabled"/.test(page.text)) {
       failures.push(contractFail(page.path, 'missing enable-meta'));
     }
+    // Per-page, never across pages: the built `/admin` legitimately carries three of the six keys
+    // (`nav-rail`, `mobile-topbar`, `cart-drawer`) and a customer page all six, so a document-wide
+    // tally would flag that legal spread as a repeat. Measured 2026-09-25 over `dist/**/*.html`.
+    const perPage = new Map();
     for (const m of page.text.matchAll(/data-astro-transition-persist="([^"]*)"/g)) {
       const key = m[1];
       found.push(key);
       const at = m.index;
+      perPage.set(key, (perPage.get(key) ?? 0) + 1);
+      if (perPage.get(key) > 1) {
+        failures.push(contractFail(page.path, DUPLICATE_KEY_TEXT(key), at, page.text));
+      }
       if (!key) {
         failures.push(contractFail(page.path, 'empty key', at, page.text));
       } else if (GENERATED_KEY_RE.test(key)) {
@@ -163,10 +177,11 @@ export function findRouterContract(pages, approved = PERSIST_KEYS) {
       }
     }
   }
-  // Union rule: `/admin` legitimately lacks `global-controls` and `cart-panel`, and `404.html` and
-  // `/admin` lack `tab-bar` (Ruling J), so keys are checked across ALL pages while the per-page
-  // check is only "no rogue value". A dropped `transition:persist` then surfaces as
-  // `approved key never emitted` rather than as a green run.
+  // Union rule: the built `/admin` is the only page that drops keys — it carries `nav-rail`,
+  // `mobile-topbar` and `cart-drawer` and not `global-controls`, `cart-panel` or `tab-bar`
+  // (Ruling J) — while `/`, `/menu`, `/booking`, `/my-orders` and `404.html` each carry all six.
+  // So keys are tallied across ALL pages, and the per-page rule stays "no rogue value". A dropped
+  // `transition:persist` then surfaces as `approved key never emitted` rather than a green run.
   if (!found.length) {
     // Appended, not returned instead: the enable-meta findings above are what tell the operator
     // whether the router is on at all, and a run that traded one for the other answers nothing.
@@ -179,6 +194,84 @@ export function findRouterContract(pages, approved = PERSIST_KEYS) {
     }
   }
   return failures;
+}
+
+// Task 7's check 9 — §6.4's route motion. The names below are the contract `src/styles/motion.css`
+// writes: TRANSITION_NAMES is derived from PERSIST_KEYS rather than hand-listed, so a seventh
+// persisted node cannot be added without this check noticing its missing carve-out.
+export const TRANSITION_KEYFRAMES = ['maghapon-page-in', 'maghapon-page-out'];
+export const TRANSITION_NAMES = PERSIST_KEYS.map((k) => `maghapon-${k}`);
+
+function balancedBody(text, open) {
+  let depth = 0;
+  for (let i = open; i < text.length; i += 1) {
+    if (text[i] === '{') depth += 1;
+    else if (text[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(open + 1, i);
+    }
+  }
+  return '';
+}
+
+// Every reduced-motion block in the text, in document order. There is more than one on purpose:
+// Astro's injected head CSS opens the bundle with a `(*)` block, motion.css has carried the
+// component-motion block since Phase 0, and §6.4 adds the one that stops the root pair. Reading
+// only the first would make this check fail a file that is correct (measured: the bundle's first
+// block is Astro's and never names `(root)`), so the rule is "some block does".
+function reducedMotionBlocks(cssText) {
+  const bodies = [];
+  for (const m of cssText.matchAll(/@media[^{]*prefers-reduced-motion[^{]*\{/g)) {
+    bodies.push(balancedBody(cssText, m.index + m[0].length - 1));
+  }
+  return bodies;
+}
+
+export function findTransitionCss(cssText) {
+  const problems = [];
+
+  for (const name of TRANSITION_KEYFRAMES) {
+    const defined = [...cssText.matchAll(new RegExp(`@keyframes\\s+${name}\\b`, 'g'))].length;
+    if (defined === 0) problems.push(`missing @keyframes ${name}`);
+    if (defined > 1) problems.push(`@keyframes ${name} is defined ${defined} times`);
+  }
+
+  for (const [pseudo, name] of [
+    ['old', 'maghapon-page-out'],
+    ['new', 'maghapon-page-in'],
+  ]) {
+    const re = new RegExp(
+      `::view-transition-${pseudo}\\(root\\)[^{]*\\{[^}]*animation[^;}]*\\b${name}\\b`
+    );
+    if (!re.test(cssText)) {
+      problems.push(`::view-transition-${pseudo}(root) does not animate ${name}`);
+    }
+  }
+
+  for (const name of TRANSITION_NAMES) {
+    const carve = new RegExp(
+      `::view-transition-(group|old|new)\\(${name}\\)[^{]*\\{[^}]*animation:\\s*none`
+    );
+    if (!carve.test(cssText)) problems.push(`no carve-out rule for ${name}`);
+  }
+
+  // Any keyframe that is not ours but is named by a view-transition rule is a second animation on
+  // one group — the Ruling B risk, which arrives from Astro's head CSS, not from motion.css.
+  for (const m of cssText.matchAll(/@keyframes\s+([\w-]+)/g)) {
+    const name = m[1];
+    if (TRANSITION_KEYFRAMES.includes(name)) continue;
+    if (new RegExp(`::view-transition-[^{]*\\{[^}]*\\b${name}\\b`).test(cssText)) {
+      problems.push(`${name} is a second animation on a view-transition group`);
+    }
+  }
+
+  const blocks = reducedMotionBlocks(cssText);
+  if (!blocks.length) {
+    problems.push('no prefers-reduced-motion block');
+  } else if (!blocks.some((b) => /::view-transition-(old|new|group)\(root\)/.test(b))) {
+    problems.push('prefers-reduced-motion does not stop the root animation');
+  }
+  return problems;
 }
 
 // Nothing else in the guard reads global.css, so the declaration of what ships was invisible to
@@ -315,6 +408,27 @@ function main() {
     // `pages` is the .html subset of the build, already carrying `.text`; `route parity` above
     // consumes the same array, so no projection is needed here either.
     ['router contract', () => findRouterContract(pages)],
+    [
+      'transition css',
+      () => {
+        // Over BOTH sources of shipped CSS: the animation this branch exists to catch is the one
+        // Astro injects into <head> as an inline <style>, which never appears in dist/_astro/*.css.
+        const sheets = distFiles.filter((f) => f.path.endsWith('.css'));
+        const inline = pages.flatMap((p) =>
+          [...p.text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1])
+        );
+        const problems = findTransitionCss([...sheets.map((f) => f.text), ...inline].join('\n'));
+        if (!problems.length) return [];
+        // The same {path, line, text} shape `style imports` above uses: a bare string would print
+        // `undefined` in the place where the finding belongs.
+        const owner = sheets.find((f) => f.text.includes('maghapon-page-in'));
+        return problems.map((text) => ({
+          path: owner ? owner.path : 'dist/_astro/*.css',
+          line: 0,
+          text,
+        }));
+      },
+    ],
   ];
   // The docs are gitignored, so a fresh clone must still build: guard the check on the file
   // rather than deleting it — a missing DESIGN.md must never read as zero drift. The absence is

@@ -13,7 +13,9 @@ import {
   findRouterContract,
   findSpriteSymbols,
   findTokenDrift,
+  findTransitionCss,
   PERSIST_KEYS,
+  TRANSITION_NAMES,
   walk,
   WEB_ROUTES,
 } from '../scripts/guard.mjs';
@@ -333,4 +335,123 @@ test('every router-contract failure is printable by the guard', () => {
     assert.ok(Number.isInteger(f.line) && f.line >= 1);
     assert.equal(f.kind, undefined);
   }
+});
+
+// Check 8's blind spot, found by Task 6's review: presence, approved-ness and non-emptiness are
+// per-attribute tests, so one page carrying `transition:persist="nav-rail"` twice satisfied all
+// three and returned []. Harmless while a key only kept a node alive; decisive once Task 7 gives
+// every key a `view-transition-name`, because the name is what selects the snapshot group and two
+// elements cannot hold one name. (What the browser then does with a repeated name is NOT asserted
+// here — the brief's own two phrasings disagree, "animate as one group" and "drop the group" —
+// and nothing in this task measures it. The rule is the spec's, not the browser's.)
+test('findRouterContract flags a key used twice on one page', () => {
+  const meta = '<meta name="astro-view-transitions-enabled" content="true">';
+  const node = (k) => `<div data-astro-transition-persist="${k}"></div>`;
+  const texts = (html) =>
+    findRouterContract([{ path: 'dist/x.html', text: html }], PERSIST_KEYS).map((f) => f.text);
+  const sixOnce = PERSIST_KEYS.map(node).join('');
+
+  // Clean: six keys, one each.
+  assert.deepEqual(texts(`<head>${meta}</head><body>${sixOnce}</body>`), []);
+
+  // The duplicate, alone: the exact shape that used to read as a pass.
+  assert.ok(
+    texts(`<head>${meta}</head><body>${node('nav-rail')}${node('nav-rail')}</body>`).some((t) =>
+      t.startsWith('duplicate key on one page: nav-rail')
+    ),
+    JSON.stringify(
+      texts(`<head>${meta}</head><body>${node('nav-rail')}${node('nav-rail')}</body>`)
+    )
+  );
+
+  // A duplicated key alongside a complete set — the case the real build would hit, because every
+  // other assertion still passes and only the repeat is wrong.
+  assert.deepEqual(
+    texts(`<head>${meta}</head><body>${sixOnce}${node('tab-bar')}</body>`),
+    ['duplicate key on one page: tab-bar — one node per name; a repeat breaks the pair']
+  );
+
+  // The report is per page, not per document: the same key once on two pages is normal, and that is
+  // what `/admin` (four keys) plus a customer page (six keys) already looks like.
+  const oneEach = PERSIST_KEYS.map(
+    (k) => ({ path: 'dist/p.html', text: `<head>${meta}</head><body>${node(k)}</body>` })
+  );
+  assert.deepEqual(
+    findRouterContract(oneEach, [PERSIST_KEYS[0]])
+      .map((f) => f.text)
+      .filter((t) => t.startsWith('duplicate key')),
+    []
+  );
+});
+
+// Task 7's §6.4 motion: check 9. The CSS this reads is the SHIPPED sheet plus every inline
+// <style> in the built pages, because the animation it exists to catch is the one Astro injects
+// into <head>, which never appears in dist/_astro/*.css. Fixtures are one mutation each so every
+// branch below is seen to bite; `deepEqual` on the first pair is deliberate — "some failures"
+// would let an extra vacuous branch ship as green.
+test('findTransitionCss needs the keyframes, the root wiring and a reduced-motion stop', () => {
+  const root =
+    '::view-transition-old(root){animation:maghapon-page-out 420ms var(--ease-out) both}' +
+    '::view-transition-new(root){animation:maghapon-page-in 420ms var(--ease-out) both}';
+  const carve = TRANSITION_NAMES.map(
+    (n) =>
+      `::view-transition-group(${n}),::view-transition-old(${n}),` +
+      `::view-transition-new(${n}){animation:none;mix-blend-mode:normal}`
+  ).join('');
+  const reduced =
+    '@media (prefers-reduced-motion:reduce){' +
+    '::view-transition-old(root),::view-transition-new(root){animation:none!important}' +
+    '}';
+  const full = [
+    '@keyframes maghapon-page-out{to{opacity:0}}',
+    '@keyframes maghapon-page-in{from{opacity:0;transform:translateY(8px)}}',
+    root,
+    carve,
+    reduced,
+  ].join('\n');
+
+  // Exact, not "some failures": an extra vacuous branch must show up as a diff.
+  assert.deepEqual(findTransitionCss(full), []);
+
+  // Renaming the out-keyframe breaks three rules at once.
+  assert.deepEqual(
+    findTransitionCss(full.replace(/maghapon-page-out/g, 'x')).sort(),
+    [
+      '::view-transition-old(root) does not animate maghapon-page-out',
+      'missing @keyframes maghapon-page-out',
+      'x is a second animation on a view-transition group',
+    ].sort()
+  );
+
+  // A persisted node named in CSS but never carved out: it cross-fades with the page, which is
+  // the "the tab bar reloaded" tell Ruling C exists to prevent.
+  assert.ok(
+    findTransitionCss(full.replace(/maghapon-tab-bar/g, 'tab-bar-x')).includes(
+      'no carve-out rule for maghapon-tab-bar'
+    )
+  );
+
+  // A reduced-motion block that neutralises something other than the root pair still fails: the
+  // selectors are what the check reads, so swapping the whole block body is the honest mutant.
+  const NOT_THE_ROOT = '@media (prefers-reduced-motion:reduce){body{animation:none}}';
+  assert.ok(
+    findTransitionCss(full.replace(/@media[^]*?\}\}/, NOT_THE_ROOT)).includes(
+      'prefers-reduced-motion does not stop the root animation'
+    )
+  );
+
+  // Deleting the block entirely is a different failure than an empty one, and both are reported.
+  assert.ok(
+    findTransitionCss(full.replace(/@media[^]*?\}\}/, '')).includes(
+      'no prefers-reduced-motion block'
+    )
+  );
+
+  // A second animation on the root group, from Astro's own injected head CSS.
+  assert.ok(
+    findTransitionCss(
+      full + '\n@keyframes astro-fade{from{opacity:0}}' +
+        '\n::view-transition-old(root){animation:astro-fade .25s}'
+    ).some((t) => t.startsWith('astro-fade is a second animation'))
+  );
 });
