@@ -1,7 +1,11 @@
 // src/lib/nav.js — route-scoped initialisation for client-side navigation.
-// Zero dependencies (§3.3). The DOM-touching exports (boot, consumePendingScroll,
-// isRouterActive) are covered by Phase 1's CDP probes, not node --test: faking a document here
-// would certify code that never runs.
+// Zero dependencies (§3.3). boot()'s listener contract — registration order, the `swapped` gate,
+// and `booted` being set before the first arrive() — IS covered by node --test, against a
+// one-method `document` stub (ruling A-7, reversing the earlier policy): a wrong order here
+// would be inherited by four later tasks, and the stub reaches everything boot() touches.
+// What a stub cannot certify is the router itself: the real astro:after-swap/page-load pair, the
+// swapped body, consumePendingScroll()'s scrollIntoView and isRouterActive()'s meta tag are proven
+// only by the CDP pass in Tasks 6 and 9.
 const inits = new Map();
 const controllers = new Map();
 const hooks = [];

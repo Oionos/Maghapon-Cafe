@@ -9,12 +9,11 @@ export const BACK = {
   EXIT: 'exit',
 };
 
-export function decideBack({
-  overlayOpen = false,
-  canGoBack = false,
-  now = 0,
-  armedAt = null,
-} = {}) {
+// Every caller passes `now`; the old `now = 0` default manufactured the epoch-0 armed timestamp
+// that review concern M8 had to explain away. `armedAt !== null` below is deliberate and must stay:
+// `armedAt: 0` is a legitimate armed value for a fake clock starting at zero, so a truthiness
+// `if (armedAt)` would silently never exit.
+export function decideBack({ overlayOpen = false, canGoBack = false, now, armedAt = null }) {
   if (overlayOpen) return { action: BACK.CLOSE, armedAt: null };
   if (canGoBack) return { action: BACK.BACK, armedAt: null };
   if (armedAt !== null && now - armedAt < EXIT_WINDOW_MS) {
@@ -44,7 +43,9 @@ export function createBackPress({
       if (decision.action === BACK.CLOSE) notify(BACK.CLOSE);
       else if (decision.action === BACK.BACK) goBack();
       else if (decision.action === BACK.ARM_EXIT) notify(BACK.ARM_EXIT);
-      else exit();
+      else if (decision.action === BACK.EXIT) exit();
+      // §2.6: an action outside BACK.* is a contract break, not a reason to quit the app.
+      else throw new TypeError(`unknown back action: ${String(decision.action)}`);
       return decision.action;
     },
     reset() {
