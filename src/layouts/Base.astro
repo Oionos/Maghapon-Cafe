@@ -352,7 +352,9 @@ const isOrders = path === '/my-orders';
       });
       window.addEventListener('maghapon:drawer-state', (event) => {
         drawerOpen = event.detail?.open === true;
-        if (drawerOpen) setPanelOpen(false);
+        // Only when the panel is actually open: setPanelOpen's close arm re-focuses panelTrigger,
+        // which is set on open and never cleared — a stale one outranks the drawer's restore.
+        if (drawerOpen && panelOpen) setPanelOpen(false);
         syncOrderControls();
       });
 
