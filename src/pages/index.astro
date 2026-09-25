@@ -179,94 +179,99 @@ const featuredImages = {
   </section>
 
   <script>
+    import { registerPage } from '../lib/nav.js';
     import { joinRewardsList } from '../lib/store/orderStore.js';
 
-    // Time-based greeting (visitor's local hour)
-    const greeting = document.getElementById('greeting');
-    if (greeting) {
-      const h = new Date().getHours();
-      greeting.textContent = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-    }
+    registerPage('/', init);
 
-    // Ordering surface: search + category chips filter the popular grid
-    const grid = document.getElementById('featured-grid');
-    const cards = [...grid.querySelectorAll('.menu-card')];
-    const featuredSet = new Set(grid.dataset.featured.split(','));
-    const chips = [...document.querySelectorAll('#category-chips .chip')];
-    const search = document.getElementById('order-search');
-    const count = document.getElementById('result-count');
-    const empty = document.getElementById('order-empty');
-    let category = 'All';
-    let query = '';
-
-    function applyFilters() {
-      let visible = 0;
-      cards.forEach((card) => {
-        const catOk = category === 'All' || card.dataset.category === category;
-        const qOk = !query || card.dataset.search.includes(query);
-        const featuredOnly = category === 'All' && !query;
-        const show = catOk && qOk && (!featuredOnly || featuredSet.has(card.dataset.id));
-        card.hidden = !show;
-        if (show) visible++;
-      });
-      count.textContent = visible + (visible === 1 ? ' item' : ' items');
-      empty.hidden = visible > 0;
-    }
-
-    chips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        chips.forEach((c) => {
-          const active = c === chip;
-          c.classList.toggle('is-active', active);
-          c.setAttribute('aria-pressed', active ? 'true' : 'false');
-        });
-        category = chip.dataset.cat;
-        applyFilters();
-      });
-    });
-
-    search.addEventListener('input', () => {
-      query = search.value.trim().toLowerCase();
-      applyFilters();
-    });
-
-    applyFilters();
-
-    // Add-to-cart buttons open the item config in the cart drawer
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-add]');
-      if (btn && window.maghaponCart) window.maghaponCart.openConfig(btn.dataset.add);
-    });
-
-    // inline validation + error states (audit: no error states)
-    const loyaltyForm = document.getElementById('loyalty-form');
-    const loyaltyName = loyaltyForm.querySelector('input[name="name"]');
-    const loyaltyEmail = loyaltyForm.querySelector('input[name="email"]');
-    function setFieldError(input, msg) {
-      input.setAttribute('aria-invalid', msg ? 'true' : 'false');
-      let err = input.nextElementSibling;
-      if (!err || !err.classList.contains('field-error')) {
-        err = document.createElement('div');
-        err.className = 'field-error';
-        input.insertAdjacentElement('afterend', err);
+    function init({ signal }) {
+      // Time-based greeting (visitor's local hour)
+      const greeting = document.getElementById('greeting');
+      if (greeting) {
+        const h = new Date().getHours();
+        greeting.textContent = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
       }
-      err.textContent = msg || '';
-      err.classList.toggle('show', !!msg);
+
+      // Ordering surface: search + category chips filter the popular grid
+      const grid = document.getElementById('featured-grid');
+      const cards = [...grid.querySelectorAll('.menu-card')];
+      const featuredSet = new Set(grid.dataset.featured.split(','));
+      const chips = [...document.querySelectorAll('#category-chips .chip')];
+      const search = document.getElementById('order-search');
+      const count = document.getElementById('result-count');
+      const empty = document.getElementById('order-empty');
+      let category = 'All';
+      let query = '';
+
+      function applyFilters() {
+        let visible = 0;
+        cards.forEach((card) => {
+          const catOk = category === 'All' || card.dataset.category === category;
+          const qOk = !query || card.dataset.search.includes(query);
+          const featuredOnly = category === 'All' && !query;
+          const show = catOk && qOk && (!featuredOnly || featuredSet.has(card.dataset.id));
+          card.hidden = !show;
+          if (show) visible++;
+        });
+        count.textContent = visible + (visible === 1 ? ' item' : ' items');
+        empty.hidden = visible > 0;
+      }
+
+      chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          chips.forEach((c) => {
+            const active = c === chip;
+            c.classList.toggle('is-active', active);
+            c.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
+          category = chip.dataset.cat;
+          applyFilters();
+        }, { signal });
+      });
+
+      search.addEventListener('input', () => {
+        query = search.value.trim().toLowerCase();
+        applyFilters();
+      }, { signal });
+
+      applyFilters();
+
+      // Add-to-cart buttons open the item config in the cart drawer
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-add]');
+        if (btn && window.maghaponCart) window.maghaponCart.openConfig(btn.dataset.add);
+      }, { signal });
+
+      // inline validation + error states (audit: no error states)
+      const loyaltyForm = document.getElementById('loyalty-form');
+      const loyaltyName = loyaltyForm.querySelector('input[name="name"]');
+      const loyaltyEmail = loyaltyForm.querySelector('input[name="email"]');
+      function setFieldError(input, msg) {
+        input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+        let err = input.nextElementSibling;
+        if (!err || !err.classList.contains('field-error')) {
+          err = document.createElement('div');
+          err.className = 'field-error';
+          input.insertAdjacentElement('afterend', err);
+        }
+        err.textContent = msg || '';
+        err.classList.toggle('show', !!msg);
+      }
+      loyaltyForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const f = e.target;
+        const name = f.name.value.trim();
+        const email = f.email.value.trim();
+        let ok = true;
+        if (name.length < 2) { setFieldError(loyaltyName, 'Please enter your name (at least 2 characters).'); ok = false; } else setFieldError(loyaltyName, '');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError(loyaltyEmail, 'Please enter a valid email address.'); ok = false; } else setFieldError(loyaltyEmail, '');
+        if (!ok) return;
+        joinRewardsList({ name, email });
+        document.getElementById('loyalty-success').textContent =
+          "You're on the list! We'll email you when Maghapon Rewards launches.";
+        document.getElementById('loyalty-success').classList.add('show');
+        f.reset();
+      }, { signal });
     }
-    loyaltyForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const f = e.target;
-      const name = f.name.value.trim();
-      const email = f.email.value.trim();
-      let ok = true;
-      if (name.length < 2) { setFieldError(loyaltyName, 'Please enter your name (at least 2 characters).'); ok = false; } else setFieldError(loyaltyName, '');
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError(loyaltyEmail, 'Please enter a valid email address.'); ok = false; } else setFieldError(loyaltyEmail, '');
-      if (!ok) return;
-      joinRewardsList({ name, email });
-      document.getElementById('loyalty-success').textContent =
-        "You're on the list! We'll email you when Maghapon Rewards launches.";
-      document.getElementById('loyalty-success').classList.add('show');
-      f.reset();
-    });
   </script>
 </Base>

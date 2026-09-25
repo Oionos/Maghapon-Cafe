@@ -12,6 +12,7 @@
 </aside>
 
 <script>
+  import { addArrivalHook } from '../lib/nav.js';
   import {
     removeItem,
     updateQty,
@@ -20,7 +21,12 @@
   } from '../lib/cart.js';
   import { getCart, setCart, placeOrder } from '../lib/store/orderStore.js';
 
-  const body = document.getElementById('cart-panel-body');
+  // #cart-panel is rendered `{!isAdmin}`, so this module's functions are reachable on a document
+  // with no panel at all: every view resolves its host node per call and refuses to paint without
+  // one. Ruling D.
+  function panelBody() {
+    return document.getElementById('cart-panel-body');
+  }
   let cart = getCart();
 
   function esc(s) {
@@ -33,6 +39,8 @@
 
   // ---- view: cart list ----
   function renderCart() {
+    const body = panelBody();
+    if (!body) return;
     body.dataset.view = 'cart';
     if (cart.length === 0) {
       body.innerHTML = `
@@ -89,6 +97,8 @@
 
   // ---- view: checkout (pickup, no payment) — same flow as the drawer ----
   function renderCheckout() {
+    const body = panelBody();
+    if (!body) return;
     body.dataset.view = 'checkout';
     body.innerHTML = `
       <div class="checkout-summary">
@@ -126,6 +136,8 @@
 
   // ---- place order → confirmation (MAG-xxxx in 'maghapon-orders', exactly like the drawer) ----
   function submitCheckout(e) {
+    const body = panelBody();
+    if (!body) return;
     e.preventDefault();
     cart = getCart(); // never order from a stale view
     if (cart.length === 0) {
@@ -154,9 +166,13 @@
 
   // ---- sync with CartDrawer: same cart, same store, same event ----
   window.addEventListener('maghapon:cart-changed', () => {
+    const body = panelBody();
+    if (!body) return;
     cart = getCart();
     if (body.dataset.view === 'cart') renderCart();
   });
 
   renderCart();
+  // A panel arriving from /admin carries the server's empty markup, not this browser's cart.
+  addArrivalHook(() => renderCart());
 </script>
