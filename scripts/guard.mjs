@@ -214,14 +214,17 @@ function balancedBody(text, open) {
   return '';
 }
 
-// Every reduced-motion block in the text, in document order. There is more than one on purpose:
-// Astro's injected head CSS opens the bundle with a `(*)` block, motion.css has carried the
-// component-motion block since Phase 0, and §6.4 adds the one that stops the root pair. Reading
-// only the first would make this check fail a file that is correct (measured: the bundle's first
-// block is Astro's and never names `(root)`), so the rule is "some block does".
+// The `: reduce` form only, and the block's own body: a `no-preference` block is the opposite
+// claim, and a block that merely mentions the root pair does not stop anything. There is more than
+// one reduce block on purpose — Astro's injected head CSS opens the bundle with a `(*)` block,
+// motion.css has carried the component-motion block since Phase 0, and §6.4 adds the one that
+// stops the root pair. Reading only the first would make this check fail a file that is correct
+// (measured: the bundle's first block is Astro's and never names `(root)`), so the rule is "some
+// block does".
 function reducedMotionBlocks(cssText) {
   const bodies = [];
-  for (const m of cssText.matchAll(/@media[^{]*prefers-reduced-motion[^{]*\{/g)) {
+  const open = /@media[^{]*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)[^{]*\{/g;
+  for (const m of cssText.matchAll(open)) {
     bodies.push(balancedBody(cssText, m.index + m[0].length - 1));
   }
   return bodies;
@@ -249,10 +252,28 @@ export function findTransitionCss(cssText) {
   }
 
   for (const name of TRANSITION_NAMES) {
-    const carve = new RegExp(
-      `::view-transition-(group|old|new)\\(${name}\\)[^{]*\\{[^}]*animation:\\s*none`
-    );
-    if (!carve.test(cssText)) problems.push(`no carve-out rule for ${name}`);
+    // All three forms, not any one of them: `group` alone sizes the snapshot but still cross-fades
+    // its old and new images, so a half-carved node keeps the "the tab bar reloaded" tell Ruling C
+    // exists to prevent while the check reads green.
+    const missing = ['group', 'old', 'new'].filter((word) => {
+      const carve = new RegExp(
+        `::view-transition-${word}\\(${name}\\)[^{]*\\{[^}]*animation:\\s*none`
+      );
+      return !carve.test(cssText);
+    });
+    if (missing.length) {
+      const forms = missing.join(' ');
+      problems.push(`no carve-out rule for ${name} (${forms} not stopped)`);
+    }
+    // One name may name one element per page, so a second application of the same name breaks the
+    // swap's pairing the same way a duplicate persist key does — and no other check sees the CSS.
+    const applied = [
+      ...cssText.matchAll(new RegExp(`view-transition-name:\\s*${name}\\b`, 'g')),
+    ].length;
+    if (applied > 1) {
+      const why = `${name} is applied ${applied} times — one name may name one element`;
+      problems.push(`view-transition-name: ${why}`);
+    }
   }
 
   // Any keyframe that is not ours but is named by a view-transition rule is a second animation on
@@ -266,9 +287,13 @@ export function findTransitionCss(cssText) {
   }
 
   const blocks = reducedMotionBlocks(cssText);
+  const stopsRootPair = (b) =>
+    /::view-transition-old\(root\)/.test(b) &&
+    /::view-transition-new\(root\)/.test(b) &&
+    /animation:\s*none\s*!important/.test(b);
   if (!blocks.length) {
     problems.push('no prefers-reduced-motion block');
-  } else if (!blocks.some((b) => /::view-transition-(old|new|group)\(root\)/.test(b))) {
+  } else if (!blocks.some(stopsRootPair)) {
     problems.push('prefers-reduced-motion does not stop the root animation');
   }
   return problems;

@@ -371,13 +371,21 @@ test('findRouterContract flags a key used twice on one page', () => {
     ['duplicate key on one page: tab-bar — one node per name; a repeat breaks the pair']
   );
 
-  // The report is per page, not per document: the same key once on two pages is normal, and that is
-  // what `/admin` (four keys) plus a customer page (six keys) already looks like.
-  const oneEach = PERSIST_KEYS.map(
-    (k) => ({ path: 'dist/p.html', text: `<head>${meta}</head><body>${node(k)}</body>` })
-  );
+  // The report is per page, not per document: keys that repeat ACROSS pages are normal, and this is
+  // exactly the real spread — `/admin` carries three of the six keys while a customer page carries
+  // all six (Ruling J, measured over `dist/**/*.html`). A document-wide tally fails this fixture;
+  // the assertion below is what pins "per page".
+  const spread = [
+    { path: 'dist/index.html', text: `<head>${meta}</head><body>${sixOnce}</body>` },
+    {
+      path: 'dist/admin/index.html',
+      text: `<head>${meta}</head><body>${['nav-rail', 'mobile-topbar', 'cart-drawer']
+        .map(node)
+        .join('')}</body>`,
+    },
+  ];
   assert.deepEqual(
-    findRouterContract(oneEach, [PERSIST_KEYS[0]])
+    findRouterContract(spread, PERSIST_KEYS)
       .map((f) => f.text)
       .filter((t) => t.startsWith('duplicate key')),
     []
@@ -424,11 +432,23 @@ test('findTransitionCss needs the keyframes, the root wiring and a reduced-motio
   );
 
   // A persisted node named in CSS but never carved out: it cross-fades with the page, which is
-  // the "the tab bar reloaded" tell Ruling C exists to prevent.
+  // the "the tab bar reloaded" tell Ruling C exists to prevent. Prefix, not equality: the message
+  // names which pseudo-els are uncarved, so the exact string is the finding's detail, not its id.
   assert.ok(
-    findTransitionCss(full.replace(/maghapon-tab-bar/g, 'tab-bar-x')).includes(
-      'no carve-out rule for maghapon-tab-bar'
+    findTransitionCss(full.replace(/maghapon-tab-bar/g, 'tab-bar-x')).some((t) =>
+      t.startsWith('no carve-out rule for maghapon-tab-bar')
     )
+  );
+
+  // Half a carve is not a carve. Stopping `group` alone still cross-fades the old and new images,
+  // and the (group|old|new) alternation this replaced read green on exactly that sheet.
+  const groupOnly = TRANSITION_NAMES.map(
+    (n) => `::view-transition-group(${n}){animation:none}`
+  ).join('');
+  const halfCarved = [full.slice(0, full.indexOf(carve)), groupOnly, reduced].join('\n');
+  assert.deepEqual(
+    findTransitionCss(halfCarved),
+    TRANSITION_NAMES.map((n) => `no carve-out rule for ${n} (old new not stopped)`)
   );
 
   // A reduced-motion block that neutralises something other than the root pair still fails: the
@@ -440,12 +460,35 @@ test('findTransitionCss needs the keyframes, the root wiring and a reduced-motio
     )
   );
 
+  // Stopping one of the pair leaves the other animating, which is a slide-out with no slide-in.
+  const OLD_ONLY = '@media (prefers-reduced-motion:reduce){::view-transition-old(root)' +
+    '{animation:none!important}}';
+  assert.ok(
+    findTransitionCss(full.replace(/@media[^]*?\}\}/, OLD_ONLY)).includes(
+      'prefers-reduced-motion does not stop the root animation'
+    )
+  );
+
+  // A `no-preference` block is the opposite claim — it fires when motion is wanted. The earlier
+  // loose matcher accepted it as a stop, and so would have shipped a reduce-motion leak.
+  const INVERTED = reduced.replace(':reduce', ':no-preference');
+  assert.deepEqual(findTransitionCss(full.replace(/@media[^]*?\}\}/, INVERTED)), [
+    'no prefers-reduced-motion block',
+  ]);
+
   // Deleting the block entirely is a different failure than an empty one, and both are reported.
   assert.ok(
     findTransitionCss(full.replace(/@media[^]*?\}\}/, '')).includes(
       'no prefers-reduced-motion block'
     )
   );
+
+  // One name may name one element per page. A second application breaks the swap's pairing, and no
+  // other check reads CSS, so this is the only place that could see it.
+  const NAMED = '.x{view-transition-name:maghapon-tab-bar}';
+  assert.deepEqual(findTransitionCss(full + NAMED + NAMED), [
+    'view-transition-name: maghapon-tab-bar is applied 2 times — one name may name one element',
+  ]);
 
   // A second animation on the root group, from Astro's own injected head CSS.
   assert.ok(
