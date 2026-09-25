@@ -1,0 +1,100 @@
+/* file: motion.css */
+/* ---- Reveal on scroll — blur + spring ---- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  filter: blur(6px);
+  transition: opacity 0.8s var(--ease), transform 0.8s var(--ease), filter 0.8s var(--ease);
+  will-change: transform, opacity;
+}
+[data-reveal].revealed {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+}
+
+/* ---- Hover lifts — spring physics, gated to hover ---- */
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  .cart-btn:hover {
+    transform: translateY(-2px);
+  }
+  .chip:hover {
+    transform: translateY(-1px);
+  }
+  .tab-btn:hover {
+    transform: translateY(-1px);
+  }
+  .info-card:hover {
+    transform: translateY(-4px);
+  }
+  .menu-card:hover {
+    transform: translateY(-4px);
+  }
+  .menu-card-compact:hover {
+    transform: translateY(-4px);
+  }
+  .testimonial-card:hover {
+    transform: translateY(-4px);
+  }
+  .add-btn:hover {
+    transform: translateY(-2px);
+  }
+  .menu-card-compact:hover .menu-card-photo {
+    transform: scale(1.04);
+  }
+  .menu-card:hover .menu-card-photo {
+    transform: scale(1.03);
+  }
+}
+
+/* ---- Press feedback — tactile squish (fast ease-out) ---- */
+.btn:active,
+.cart-btn:active,
+.chip:active,
+.tab-btn:active,
+.opt-pill:active,
+.qty-btn:active,
+.drawer-close:active,
+.cart-panel-close:active,
+.rail-toggle:active,
+.menu-card:active,
+.info-card:active,
+.testimonial-card:active {
+  transform: scale(0.97);
+  transition-duration: 160ms;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition-delay: 0ms !important;
+  }
+  .btn:hover,
+  .cart-btn:hover,
+  .chip:hover,
+  .tab-btn:hover,
+  .info-card:hover,
+  .menu-card:hover,
+  .menu-card-compact:hover,
+  .testimonial-card:hover,
+  .add-btn:hover,
+  .menu-card-compact:hover .menu-card-photo {
+    transform: none;
+  }
+}

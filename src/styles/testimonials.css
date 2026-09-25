@@ -1,0 +1,61 @@
+/* file: testimonials.css */
+/* ---- Testimonials — masonry, squircle, staggered ---- */
+#reviews .grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start;
+  gap: 1.4rem;
+}
+.testimonial-card {
+  position: relative;
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  transition: transform 0.7s var(--ease), box-shadow 0.7s var(--ease), border-color 0.7s var(--ease);
+  border-radius: 20px;
+}
+.testimonial-card::after {
+  content: "";
+  position: absolute;
+  left: 2.2rem;
+  bottom: -10px;
+  width: 20px;
+  height: 20px;
+  background: var(--cream-bright);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0 0 4px 0;
+  transform: rotate(45deg);
+}
+.testimonial-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--line-strong);
+}
+.testimonial-card blockquote {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--ink-deep);
+  flex: 1;
+  text-wrap: pretty;
+}
+.testimonial-card blockquote::before {
+  content: "“";
+  display: block;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 0.6;
+  color: var(--rust-amber);
+  margin-bottom: 0.55rem;
+}
+.testimonial-card figcaption {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--rust);
+}

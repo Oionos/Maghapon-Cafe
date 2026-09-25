@@ -1,0 +1,308 @@
+/* file: shell.css */
+/* ---- App shell: desktop rail + mobile top bar + bottom tabs ---- */
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.nav-rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem 1rem;
+  background: var(--cream-bright);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink-deep);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-decoration: none;
+}
+.brand:hover {
+  text-decoration: none;
+}
+.brand img {
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+}
+.brand-copy {
+  min-width: 0;
+}
+.brand small {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--rust);
+  letter-spacing: 0.04em;
+}
+.rail-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 1.25rem;
+}
+.rail-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.rail-icon {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  font-size: 22px;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  font-weight: 300;
+}
+.rail-nav a:hover {
+  background: rgba(187, 61, 3, 0.08);
+  color: var(--ink-deep);
+  text-decoration: none;
+}
+.rail-nav a.is-active {
+  background: var(--cream-deep);
+  color: var(--ink-deep);
+}
+.rail-footer {
+  display: none;
+  margin-top: auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.rail-toggle {
+  display: none;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 160ms var(--ease-out);
+}
+.rail-toggle:hover {
+  background: rgba(187, 61, 3, 0.08);
+  color: var(--ink-deep);
+}
+.rail-toggle-icon {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  transition: transform 0.25s var(--ease);
+}
+.rail-collapsed .rail-toggle-icon {
+  transform: rotate(180deg);
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--cream-bright);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  white-space: nowrap;
+}
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.18);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.status-pill.closed .status-dot {
+  background: var(--rust);
+  box-shadow: 0 0 0 3px rgba(187, 61, 3, 0.18);
+}
+.cart-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--cream-bright);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: transform 0.2s var(--ease), background 0.2s;
+}
+.cart-btn:hover {
+  background: var(--cream);
+  box-shadow: var(--shadow);
+}
+.cart-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--rust);
+  color: var(--cream-bright);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cart-count[hidden] {
+  display: none;
+}
+
+/* ---- Sticky admin toolbar (admin only; customer pages use the floating cluster) ---- */
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  min-height: var(--header-h);
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  background: rgba(224, 224, 224, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.toolbar-status {
+  background: var(--cream-bright);
+}
+
+/* ---- Floating global controls: shop status + single order trigger, top-right, all widths ---- */
+.global-controls {
+  position: fixed;
+  top: 0.75rem;
+  right: clamp(0.75rem, 3vw, 1.5rem);
+  z-index: 60; /* above toolbars (50) and sticky tabs (40); below tab-bar (80) and drawer (100) */
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.global-controls .status-pill {
+  box-shadow: var(--shadow);
+}
+.global-controls .cart-btn {
+  box-shadow: 0 4px 14px rgba(64, 0, 0, 0.14);
+}
+
+/* ---- Mobile compact top bar (≤767px) ---- */
+.mobile-topbar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: var(--header-h);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1rem;
+  background: rgba(224, 224, 224, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.mobile-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 0 0 auto;
+}
+.mobile-status {
+  padding: 0.35rem 0.7rem;
+}
+.mobile-topbar .brand img {
+  width: 32px;
+  height: 32px;
+}
+
+/* ---- Mobile bottom tab bar (≤767px) ---- */
+.tab-bar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  height: calc(64px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  grid-template-columns: repeat(4, 1fr);
+  background: rgba(244, 239, 230, 0.96);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+}
+.tab-bar a,
+.tab-bar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0.4rem 0.25rem;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.tab-bar a:hover {
+  color: var(--rust);
+  text-decoration: none;
+}
+.tab-bar .is-active {
+  color: var(--rust);
+}
+.tab-bar svg {
+  width: 22px;
+  height: 22px;
+}
+.tab-icon {
+  position: relative;
+  display: inline-flex;
+}

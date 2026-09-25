@@ -5,6 +5,7 @@
 // hidden: passthrough so the landing grid can pre-hide non-featured items
 // image: product photo — astro:assets metadata (rendered as optimized <Image>) or URL string
 import { Image } from 'astro:assets';
+import Icon from './Icon.astro';
 
 const { item, interactive = true, compact = false, reveal = true, hidden = false, image = null } = Astro.props;
 const initial = item.name.charAt(0).toUpperCase();
@@ -45,7 +46,7 @@ const isMatcha = item.category === 'Matcha' || item.name.toLowerCase().includes(
       <div class="compact-row">
         <span class="compact-price">{priceText}</span>
         <button class="add-btn" type="button" data-add={item.id} aria-label={`Add ${item.name} to cart`}>
-          <i class="ph ph-plus" aria-hidden="true" style="font-size:18px"></i>
+          <Icon name="plus" size={18} />
         </button>
       </div>
     ) : (
@@ -59,7 +60,7 @@ const isMatcha = item.category === 'Matcha' || item.name.toLowerCase().includes(
           ))}
         </div>
         {interactive ? (
-          <button class="btn btn-primary btn-sm" type="button" data-add={item.id}>Add to cart <span class="btn-icon"><i class="ph ph-plus" aria-hidden="true"></i></span></button>
+          <button class="btn btn-primary btn-sm" type="button" data-add={item.id}>Add to cart <span class="btn-icon"><Icon name="plus" size={14} /></span></button>
         ) : (
           <a class="btn btn-ghost btn-sm" href="/menu">On the menu</a>
         )}

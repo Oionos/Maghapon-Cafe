@@ -1,8 +1,6 @@
 ---
 // CartDrawer — slide-over cart: item config, cart list, checkout, confirmation
-// All cart math lives in src/lib/cart.js (pure functions); this file only renders.
-import { menu, extras } from '../data/menu.js';
-const menuJson = JSON.stringify({ menu, extras });
+// All cart math lives in src/lib/cart.js (pure); persistence in the store seam (src/lib/store/).
 ---
 <div class="drawer" id="cart-drawer" aria-hidden="true">
   <div class="drawer-scrim" data-cart-close></div>
@@ -15,7 +13,6 @@ const menuJson = JSON.stringify({ menu, extras });
   </div>
 </div>
 
-<script type="application/json" id="menu-data" set:html={menuJson}></script>
 
 <script>
   import {
@@ -25,20 +22,18 @@ const menuJson = JSON.stringify({ menu, extras });
     cartTotal,
     cartCount,
     formatPeso,
-    loadCart,
-    saveCart,
-    loadOrders,
-    saveOrders,
-    createOrder,
   } from '../lib/cart.js';
+  import { getCart, setCart, placeOrder } from '../lib/store/orderStore.js';
+  import { getMenu, getExtras } from '../lib/store/menuSource.js';
 
-  const { menu, extras } = JSON.parse(document.getElementById('menu-data').textContent);
+  const menu = getMenu();
+  const extras = getExtras();
   const drawer = document.getElementById('cart-drawer');
   const body = document.getElementById('drawer-body');
   const title = document.getElementById('drawer-title');
   const badge = document.getElementById('cart-count');
 
-  let cart = loadCart();
+  let cart = getCart();
   let config = null; // { item, variant, mods: Set, qty }
   let lastTrigger = null;
 
@@ -53,7 +48,7 @@ const menuJson = JSON.stringify({ menu, extras });
     }
   }
   function persist() {
-    saveCart(cart);
+    setCart(cart);
     renderBadge();
     // Canonical cart-changed signal — CartPanel (and this drawer) listen to stay in sync.
     window.dispatchEvent(new CustomEvent('maghapon:cart-changed'));
@@ -97,10 +92,10 @@ const menuJson = JSON.stringify({ menu, extras });
     if (e.key === 'Escape') closeDrawer();
   });
 
-  // Keep this drawer in sync when CartPanel changes the cart (same localStorage source).
+  // Keep this drawer in sync when CartPanel changes the cart (same store, same event source).
   // Only the cart view re-renders live; config/checkout/confirmation views are left alone.
   window.addEventListener('maghapon:cart-changed', () => {
-    cart = loadCart();
+    cart = getCart();
     renderBadge();
     if (drawer.classList.contains('open') && title.textContent === 'Your order') renderCart();
   });
@@ -270,23 +265,20 @@ const menuJson = JSON.stringify({ menu, extras });
         <button class="btn btn-primary btn-block" type="submit">Place order</button>
       </form>
       <p class="checkout-note">Demo checkout — no payment is taken. Pay at the counter when you pick up.</p>`;
-    body.querySelector('#checkout-form').addEventListener('submit', placeOrder);
+    body.querySelector('#checkout-form').addEventListener('submit', submitCheckout);
   }
 
   // ---- place order → confirmation ----
-  function placeOrder(e) {
+  function submitCheckout(e) {
     e.preventDefault();
     const name = body.querySelector('#co-name').value.trim();
     const phone = body.querySelector('#co-phone').value.trim();
     if (!name || !phone) return;
-    const orders = loadOrders();
-    const order = createOrder({
+    const order = placeOrder({
       customer: { name, phone },
       items: cart.map((l) => ({ name: l.name, variant: l.variant, modifiers: l.modifiers, qty: l.qty, unit: l.unit })),
       total: cartTotal(cart),
-      orders,
     });
-    saveOrders([order, ...orders]);
     cart = [];
     persist();
     title.textContent = 'Order confirmed';

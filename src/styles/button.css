@@ -1,0 +1,73 @@
+/* file: button.css */
+/* ---- Buttons — nested island architecture ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.65rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.7s var(--ease), box-shadow 0.7s var(--ease), background 0.7s var(--ease), color 0.7s var(--ease), border-color 0.7s var(--ease);
+  text-decoration: none;
+  will-change: transform;
+}
+.btn:hover {
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--rust);
+  color: var(--cream-bright);
+  border-color: var(--rust);
+}
+.btn-primary:hover {
+  background: var(--ink-deep);
+  border-color: var(--ink-deep);
+  box-shadow: var(--shadow-lift);
+}
+.btn-outline {
+  border-color: var(--line-light);
+  color: var(--cream-bright);
+  background: transparent;
+}
+.btn-outline:hover {
+  background: rgba(253, 251, 247, 0.12);
+  border-color: rgba(253, 251, 247, 0.28);
+}
+.btn-ghost {
+  color: var(--rust);
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: rgba(187, 61, 3, 0.08);
+}
+.btn-sm {
+  min-height: 40px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.88rem;
+}
+.btn-block {
+  width: 100%;
+}
+.btn .btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  flex: 0 0 28px;
+  transition: transform 0.7s var(--ease);
+}
+.btn:hover .btn-icon {
+  transform: translateX(2px) translateY(-1px) scale(1.05);
+}
+.btn:active {
+  transform: scale(0.98);
+}

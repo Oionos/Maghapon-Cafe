@@ -5,6 +5,7 @@ import Base from '../layouts/Base.astro';
 import MenuCard from '../components/MenuCard.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Hero from '../components/Hero.astro';
+import Icon from '../components/Icon.astro';
 import { menu, categories } from '../data/menu.js';
 import { Image } from 'astro:assets';
 import storyImg from '../assets/story.webp';
@@ -51,7 +52,7 @@ const featuredImages = {
       <p class="order-sub">Order ahead for pickup — we'll have it ready when you arrive.</p>
 
       <div class="search-box">
-        <i class="ph ph-magnifying-glass" aria-hidden="true" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:20px;opacity:.55;pointer-events:none"></i>
+        <Icon name="magnifying-glass" size={20} />
         <input id="order-search" class="search-input" type="search" placeholder="Search coffee, matcha, rice bowls…" aria-label="Search the menu" />
       </div>
 
@@ -178,7 +179,7 @@ const featuredImages = {
   </section>
 
   <script>
-    import { saveRewards } from '../lib/cart.js';
+    import { joinRewardsList } from '../lib/store/orderStore.js';
 
     // Time-based greeting (visitor's local hour)
     const greeting = document.getElementById('greeting');
@@ -261,9 +262,7 @@ const featuredImages = {
       if (name.length < 2) { setFieldError(loyaltyName, 'Please enter your name (at least 2 characters).'); ok = false; } else setFieldError(loyaltyName, '');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError(loyaltyEmail, 'Please enter a valid email address.'); ok = false; } else setFieldError(loyaltyEmail, '');
       if (!ok) return;
-      const rewards = JSON.parse(localStorage.getItem('maghapon-rewards') || '[]');
-      rewards.push({ name, email, createdAt: new Date().toISOString() });
-      saveRewards(rewards);
+      joinRewardsList({ name, email });
       document.getElementById('loyalty-success').textContent =
         "You're on the list! We'll email you when Maghapon Rewards launches.";
       document.getElementById('loyalty-success').classList.add('show');

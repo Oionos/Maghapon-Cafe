@@ -1,0 +1,30 @@
+/* file: tokens/legacy-root.css */
+/* ---- Design tokens ---- */
+:root {
+  --rust: #bb3d03;
+  --rust-amber: #d6873e;
+  --cream: #f4efe6;
+  --cream-bright: #fdfbf7;
+  --cream-deep: #d3cbbd;
+  --ink: #602000;
+  --ink-deep: #2a1206;
+  --matcha: #6b8f2e;
+  --brown: #c0a080;
+  --bg-dark: #1a0b02;
+  --green: #2e7d32;
+  --line: rgba(42, 18, 6, 0.10);
+  --line-strong: rgba(42, 18, 6, 0.18);
+  --line-light: rgba(253, 251, 247, 0.12);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Geist Variable', system-ui, sans-serif;
+  --radius: 2rem;
+  --radius-sm: 12px;
+  --radius-xs: 10px;
+  --shadow: 0 16px 40px rgba(42, 18, 6, 0.08);
+  --shadow-lift: 0 24px 56px rgba(42, 18, 6, 0.14);
+  --shadow-soft: 0 8px 24px rgba(42, 18, 6, 0.06);
+  --container: 1280px;
+  --header-h: 64px;
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease: var(--ease-out);
+}
