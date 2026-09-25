@@ -1,0 +1,25 @@
+# Line endings in this repository are LF, on every platform.
+#
+# Without this file each clone inherits whatever core.autocrlf its machine has —
+# this one has `true` — so a Windows and a Linux checkout disagree about the
+# bytes of every text file. Phase 5 hands the same tree to an Android toolchain
+# and any CI runner is a second platform by definition, so the rule belongs in
+# the repo rather than in each machine's config.
+#
+# `eol=lf` on the catch-all is what makes extensionless files like
+# .gitattributes and .gitignore deterministic too; per-extension rules would
+# leave them falling through to the local autocrlf setting.
+#
+# The index is already all-LF, so this normalizes nothing — it pins the state.
+* text=auto eol=lf
+
+# Never converted in either direction: 22 tracked jpg/webp today, plus the
+# png/ico/woff2 types the Capacitor-icon and self-hosted-font work already plans.
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.png   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
