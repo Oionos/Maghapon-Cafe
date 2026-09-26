@@ -291,6 +291,49 @@ test('resetNav() forgets the active path, so a re-boot has nothing to fall back 
   assert.equal(inits, 0, 'activePath: resetNav() must forget which path is current');
 });
 
+// F-F7: `document` is never replaced by a swap, so boot()'s two listeners outlive the call that
+// bound them and resetNav() cannot unbind them — a second boot() in one document stacked a second
+// pair and every swap arrived twice. Every other boot() test here calls useDocument() first, which
+// installs a FRESH stub each time and so could never see the stack; this one deliberately reuses
+// ONE stub across two boots and asserts the bind log stays two entries long, not four.
+test('boot() twice in one document binds the listener pair once and arrives once per swap', () => {
+  resetNav();
+  const { order, fire } = useDocument();
+  const arrivals = [];
+  boot(() => arrivals.push('first'));
+  assert.deepEqual(order, ['astro:after-swap', 'astro:page-load'], 'setup: the first boot binds');
+  boot(() => arrivals.push('second'));
+  assert.deepEqual(
+    order,
+    ['astro:after-swap', 'astro:page-load'],
+    'the second boot must not bind a second pair to the same document'
+  );
+  assert.deepEqual(arrivals, ['first', 'second'], 'each boot still arrives once, synchronously');
+  arrivals.length = 0;
+  fire('astro:after-swap');
+  fire('astro:page-load');
+  assert.deepEqual(arrivals, ['second'], 'one swap drives exactly one arrival, on the newest hook');
+});
+
+// The other half of the same slot: resetNav() must release the document it recorded, or a re-boot
+// against that one document would bind nothing and the shell would go deaf to every later swap.
+test('resetNav() releases the bind slot so a re-boot on the same document binds again', () => {
+  resetNav();
+  const { order, fire } = useDocument();
+  let arrivals = 0;
+  boot(() => {
+    arrivals += 1;
+  });
+  resetNav();
+  boot(() => {
+    arrivals += 1;
+  });
+  assert.equal(order.length, 4, 'the reset must let the second boot bind its own pair');
+  fire('astro:after-swap');
+  fire('astro:page-load');
+  assert.equal(arrivals, 3, 'and exactly one of the two pairs may answer one swap');
+});
+
 test('an arrive() that throws propagates out of boot(), leaving booted already true', () => {
   resetNav();
   useDocument();

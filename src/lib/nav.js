@@ -1,8 +1,9 @@
 // src/lib/nav.js — route-scoped initialisation for client-side navigation.
-// Zero dependencies (§3.3). boot()'s listener contract — registration order, the `swapped` gate,
-// and `booted` being set before the first arrive() — IS covered by node --test, against a
-// one-method `document` stub (ruling A-7, reversing the earlier policy): a wrong order here
-// would be inherited by four later tasks, and the stub reaches everything boot() touches.
+// Zero dependencies (§3.3). boot()'s listener contract — registration order, one binding per
+// document, the `swapped` gate, and `booted` being set before the first arrive() — IS covered by
+// node --test, against a one-method `document` stub (ruling A-7, reversing the earlier policy): a
+// wrong order here would be inherited by four later tasks, and the stub reaches everything boot()
+// touches.
 // What a stub cannot certify is the router itself: the real astro:after-swap/page-load pair, the
 // swapped body, and a scrollIntoView that really moves the viewport, are proven only by the CDP
 // pass in Tasks 6 and 9. What the stub does reach is the seams: consumePendingScroll() and
@@ -22,6 +23,13 @@ const hooks = [];
 let pendingScroll = null;
 let activePath = null;
 let booted = false;
+// F-F7: `document` is never replaced by a swap, so a pair bound here outlives every boot() call and
+// resetNav() cannot unbind it. Binding once per document is the only dedupe available here; the
+// handler reads `arrival` so a later boot() re-points the pair it already owns instead of stacking
+// a second one that would arrive twice per swap.
+let boundDocument = null;
+let arrival = null;
+let swapped = false;
 
 export function normalizePath(p) {
   if (typeof p !== 'string' || p === '') return '/';
@@ -110,15 +118,18 @@ export function isRouterActive(doc = document) {
 
 export function boot(arrive) {
   booted = true;
-  let swapped = false;
-  document.addEventListener('astro:after-swap', () => {
-    swapped = true;
-  });
-  document.addEventListener('astro:page-load', () => {
-    if (!swapped) return;
-    swapped = false;
-    arrive();
-  });
+  arrival = arrive;
+  if (boundDocument !== document) {
+    boundDocument = document;
+    document.addEventListener('astro:after-swap', () => {
+      swapped = true;
+    });
+    document.addEventListener('astro:page-load', () => {
+      if (!swapped) return;
+      swapped = false;
+      arrival?.();
+    });
+  }
   arrive();
 }
 
@@ -129,4 +140,7 @@ export function resetNav() {
   pendingScroll = null;
   activePath = null;
   booted = false;
+  arrival = null;
+  swapped = false;
+  boundDocument = null;
 }
