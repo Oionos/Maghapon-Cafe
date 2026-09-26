@@ -21,14 +21,42 @@ const ARRIVAL_ORDER = [
   'initHashNav',
 ];
 
-test('arrive() calls the initialisers in the contracted order', () => {
+test('arrive() runs the contracted order through the isolated runner', () => {
   const src = readFileSync(new URL('../src/layouts/Base.astro', import.meta.url), 'utf8');
   // `\n\s*\}` and not the plan's `\n\}`: the whole script sits indented inside <script>, so the
   // closing brace of arrive() is never at column 0 and the brief's pattern matches nothing.
   const body = src.match(/function arrive\(\)\s*\{([\s\S]*?)\n\s*\}/);
   assert.ok(body, 'no function arrive() block found in Base.astro');
-  const calls = [...body[1].matchAll(/^\s*([a-z][A-Za-z]*)\(\);$/gm)].map((m) => m[1]);
-  assert.deepEqual(calls, ARRIVAL_ORDER);
+  // F-F6 changed the shape this reads, deliberately: the ten bare `init*();` calls this used to
+  // match are now `{ name, fn }` entries handed to runArrivalSteps(), because an unisolated call
+  // list is exactly the defect (a throw in step 3 cancelled steps 9 and 10 for the session). The
+  // ORDER asserted below is the same ten names in the same order — the wrapper moved the calls, it
+  // did not reorder them. A `{` on its own line never matches the extraction pattern, so the body
+  // still ends at arrive()'s own brace.
+  const steps = [
+    ...body[1].matchAll(/\{\s*name:\s*'([A-Za-z]+)'\s*,\s*fn:\s*([A-Za-z][A-Za-z0-9]*)\s*,?\s*\}/g),
+  ];
+  assert.ok(steps.length, 'arrive() declares no `{ name, fn }` steps at all');
+  assert.deepEqual(steps.map((m) => m[1]), ARRIVAL_ORDER);
+  for (const m of steps) {
+    assert.equal(m[2], m[1], `step '${m[1]}' must name the function it runs, not another one`);
+  }
+  assert.match(body[1], /runArrivalSteps\(\s*\[/, 'the steps must go through the isolating runner');
+  assert.match(body[1], /,\s*reportArrivalStep\s*\)/, 'and to the reporter, never silently');
+});
+
+// F-F6's other half: isolation without a report is the silent swallowing §2.6 forbids, and a report
+// nothing outside the module can read is not evidence. Source-asserted for the same reason as the
+// order above — Base.astro is a layout, not an importable module.
+test('a failed arrival step is logged and left readable from outside the module', () => {
+  const src = readFileSync(new URL('../src/layouts/Base.astro', import.meta.url), 'utf8');
+  const reporter = src.match(/function reportArrivalStep\([^)]*\)\s*\{([\s\S]*?)\n\s*\}/);
+  assert.ok(reporter, 'no reportArrivalStep() found in Base.astro');
+  assert.match(reporter[1], /console\.error\('maghapon: arrival step failed'/);
+  assert.match(reporter[1], /arrivalFailures\.push\(\{\s*step:/);
+  const shell = src.match(/window\.maghaponShell\s*=\s*\{([\s\S]*?)\n\s*\}/);
+  assert.ok(shell, 'no window.maghaponShell assignment found in Base.astro');
+  assert.match(shell[1], /\barrivalFailures\b/, 'the failure log must be reachable from a probe');
 });
 
 // F-F5: the reveal observer is a module-scope singleton, so the arrival boundary is the only place

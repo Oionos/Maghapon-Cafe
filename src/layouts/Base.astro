@@ -209,6 +209,7 @@ const isOrders = path === '/my-orders';
         isRouterActive,
         normalizePath,
         requestScrollTo,
+        runArrivalSteps,
         runHooks,
         runPage,
       } from '../lib/nav.js';
@@ -527,21 +528,40 @@ const isOrders = path === '/my-orders';
         });
       }
 
-      function arrive() {
-        initOverlayState();
-        initStatusPill();
-        initChromeNav();
-        initReveals();
-        initOrderSurface();
-        initRailCollapse();
-        initBadgeMirror();
-        initPageScripts();
-        consumePendingScroll();
-        initHashNav();
+      // F-F6: an arrival is ten independent jobs, and the order among them is a contract while a
+      // failure in one of them is not a reason to cancel the rest. Each step runs isolated and is
+      // reported loudly rather than swallowed — §2.6's distinction. Without this, a throw in any of
+      // steps 1-8 (in a page init, or in an arrival hook owned by CartDrawer or CartPanel) skipped
+      // the scroll hand-off and the hash seam on EVERY later arrival for the whole session.
+      const arrivalFailures = [];
+
+      function reportArrivalStep(name, err) {
+        arrivalFailures.push({ step: name, message: String(err?.message ?? err) });
+        console.error('maghapon: arrival step failed', name, err);
       }
 
+      function arrive() {
+        runArrivalSteps(
+          [
+            { name: 'initOverlayState', fn: initOverlayState },
+            { name: 'initStatusPill', fn: initStatusPill },
+            { name: 'initChromeNav', fn: initChromeNav },
+            { name: 'initReveals', fn: initReveals },
+            { name: 'initOrderSurface', fn: initOrderSurface },
+            { name: 'initRailCollapse', fn: initRailCollapse },
+            { name: 'initBadgeMirror', fn: initBadgeMirror },
+            { name: 'initPageScripts', fn: initPageScripts },
+            { name: 'consumePendingScroll', fn: consumePendingScroll },
+            { name: 'initHashNav', fn: initHashNav },
+          ],
+          reportArrivalStep
+        );
+      }
+
+      // Probe surface: what a test or a CDP pass reads, not what the shell decides from.
       window.maghaponShell = {
         arrive,
+        arrivalFailures,
         get drawerOpen() {
           return drawerOpen;
         },

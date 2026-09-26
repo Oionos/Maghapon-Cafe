@@ -4,8 +4,10 @@
 // one-method `document` stub (ruling A-7, reversing the earlier policy): a wrong order here
 // would be inherited by four later tasks, and the stub reaches everything boot() touches.
 // What a stub cannot certify is the router itself: the real astro:after-swap/page-load pair, the
-// swapped body, consumePendingScroll()'s scrollIntoView and isRouterActive()'s meta tag are proven
-// only by the CDP pass in Tasks 6 and 9.
+// swapped body, and a scrollIntoView that really moves the viewport, are proven only by the CDP
+// pass in Tasks 6 and 9. What the stub does reach is the seams: consumePendingScroll() and
+// isRouterActive() both take the document they query, so their selector and their absent-target
+// branch are pinned here rather than assumed.
 const inits = new Map();
 const controllers = new Map();
 const hooks = [];
@@ -55,6 +57,23 @@ export function runHooks() {
   for (const fn of hooks) fn();
 }
 
+// One arrival's worth of steps, run in order, each step isolated. It lives here rather than inline
+// in `arrive()` because Base.astro is a layout, not an importable module: this is the only place
+// the isolation itself can be tested (F-F6). The point is the continue, not the catch: the shell's
+// last two steps are consumePendingScroll() and initHashNav(), so before this a throw anywhere
+// earlier cancelled the scroll hand-off and the hash seam for the rest of the session. `report` is
+// required rather than optional, because §2.6 forbids silent swallowing and an optional reporter
+// would let a caller reintroduce it by forgetting an argument.
+export function runArrivalSteps(steps, report) {
+  for (const step of steps) {
+    try {
+      step.fn();
+    } catch (err) {
+      report(step.name, err);
+    }
+  }
+}
+
 export function requestScrollTo(id) {
   pendingScroll = id;
 }
@@ -65,10 +84,13 @@ export function takePendingScroll() {
   return id;
 }
 
-export function consumePendingScroll() {
+export function consumePendingScroll(doc = document) {
   const id = takePendingScroll();
   if (!id) return false;
-  const el = document.getElementById(id);
+  // The element may be gone: `#booking` is a fragment id with no `[data-hash-nav]` anchor today,
+  // and a swap can land on a document that never rendered the target. Absent is not an error and
+  // must not throw — the id is already consumed, so a throw here would also lose the hand-off.
+  const el = doc.getElementById(id);
   if (!el) return false;
   el.scrollIntoView({ behavior: 'instant', block: 'start' });
   return true;

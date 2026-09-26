@@ -8,6 +8,8 @@ import {
   runHooks,
   requestScrollTo,
   takePendingScroll,
+  consumePendingScroll,
+  runArrivalSteps,
   isRouterActive,
   boot,
   resetNav,
@@ -60,6 +62,69 @@ test('the pending scroll is a one-shot', () => {
   requestScrollTo('rewards');
   assert.equal(takePendingScroll(), 'rewards');
   assert.equal(takePendingScroll(), null);
+});
+
+// F-F6 / review mutant N10. consumePendingScroll() is the arrival step most likely to look up a
+// node the destination never rendered — `#booking` is a fragment id with no `[data-hash-nav]`
+// anchor today — and mutant N10 (deleting `if (!el) return false;`) survived the whole suite,
+// because the function read the global `document` and no stub could be placed under it.
+// isRouterActive() has taken its document as a parameter since Task 6; this closes the asymmetry.
+// What is pinned: a missing node returns instead of throwing (N10's killer), the id stays consumed
+// even then (a re-offer would scroll to a target from a page the user already left), and the exact
+// options handed to scrollIntoView — `instant`, because the cross-fade owns the animation budget.
+test('consumePendingScroll() reads an absent target as "nothing scrolled"', () => {
+  resetNav();
+  const scrolled = [];
+  const doc = (hit) => ({
+    getElementById: (id) => (hit ? { id, scrollIntoView: (o) => scrolled.push([id, o]) } : null),
+  });
+  assert.equal(consumePendingScroll(doc(false)), false, 'nothing queued means nothing to do');
+  requestScrollTo('rewards');
+  assert.equal(consumePendingScroll(doc(false)), false, 'a missing node must not throw');
+  assert.equal(takePendingScroll(), null, 'the id stays consumed even when the target never lands');
+  requestScrollTo('rewards');
+  assert.equal(consumePendingScroll(doc(true)), true, 'a present target is a completed hand-off');
+  assert.deepEqual(scrolled, [['rewards', { behavior: 'instant', block: 'start' }]]);
+});
+
+// F-F6: arrive()'s ten steps run through this runner, which is the only reason the isolation is
+// testable at all — Base.astro is a layout, not a module. The failure the review priced was a throw
+// anywhere in steps 1-8 cancelling the scroll hand-off and the hash seam for the rest of the
+// session, so the assertion is not "it caught the error" but "everything after it still ran, in
+// order, exactly once".
+test('runArrivalSteps() continues past a throwing step and still reaches the last one', () => {
+  const ran = [];
+  const reported = [];
+  runArrivalSteps(
+    [
+      { name: 'initOverlayState', fn: () => ran.push('overlay') },
+      {
+        name: 'initPageScripts',
+        fn: () => {
+          throw new Error('a page init blew up');
+        },
+      },
+      { name: 'consumePendingScroll', fn: () => ran.push('scroll') },
+      { name: 'initHashNav', fn: () => ran.push('hash') },
+    ],
+    (name, err) => reported.push(`${name}: ${err.message}`)
+  );
+  assert.deepEqual(ran, ['overlay', 'scroll', 'hash'], 'the failing step must stop nothing');
+  assert.deepEqual(reported, ['initPageScripts: a page init blew up'], 'and report it by name');
+});
+
+// `report` is a required argument, not an optional one with a no-op default: §2.6's rule is that
+// isolation must never turn into silence, and a default reporter is the shape that would let it.
+test('runArrivalSteps() has no silent default for the reporter', () => {
+  const steps = [
+    {
+      name: 'initHashNav',
+      fn: () => {
+        throw new Error('no reporter to tell');
+      },
+    },
+  ];
+  assert.throws(() => runArrivalSteps(steps, undefined), TypeError);
 });
 
 // Task 6 gives isRouterActive() its only consumer — initHashNav() asks it before turning a click
