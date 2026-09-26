@@ -315,15 +315,82 @@ test('findRouterContract flags a missing meta, a rogue key and a generated key',
     )
   );
 
-  // A silently dropped attribute — the vacuous pass this check exists to refuse.
+  // A silently dropped attribute — the vacuous pass this check exists to refuse. The finding names
+  // the page, because the rule is now per page (F-F1): a union over pages stayed green on it.
   const fiveOfSix = PERSIST_KEYS.slice(0, 5)
     .map((k) => `<div data-astro-transition-persist="${k}"></div>`)
     .join('');
-  assert.ok(
-    texts(`<head>${meta}</head><body>${fiveOfSix}</body>`).some((t) =>
-      t.startsWith('approved key never emitted')
-    )
+  assert.deepEqual(
+    texts(`<head>${meta}</head><body>${fiveOfSix}</body>`),
+    ['key cart-drawer absent on dist/x.html — this page must emit it']
   );
+});
+
+// F-F1, the exact shape the deleted cross-page union could not see: two pages, every approved key
+// emitted by SOME page, and one page short of the set it must carry. The union tallied over pages,
+// so `cart-drawer` was "found" by nav-rail's co-traveller on the other document and the pair read
+// clean (review mutant M-A => []). The declared per-page expectation has nothing to lean on.
+test('findRouterContract reads a per-page expectation, not a cross-page union', () => {
+  const meta = '<meta name="astro-view-transitions-enabled" content="true">';
+  const node = (k) => `<div data-astro-transition-persist="${k}"></div>`;
+  const doc = (keys) => `<head>${meta}</head><body>${keys.map(node).join('')}</body>`;
+  const texts = (pages) => findRouterContract(pages, PERSIST_KEYS).map((f) => f.text);
+  const complete = PERSIST_KEYS;
+  const short = PERSIST_KEYS.filter((k) => k !== 'cart-drawer');
+
+  // One finding, named by key and page: the union's failure was that it could not say which page.
+  assert.deepEqual(
+    texts([
+      { path: 'dist/a.html', text: doc(complete) },
+      { path: 'dist/b.html', text: doc(short) },
+    ]),
+    ['key cart-drawer absent on dist/b.html — this page must emit it']
+  );
+
+  // Both pages complete: the same corpus the union accepted, still accepted.
+  assert.deepEqual(
+    texts([
+      { path: 'dist/a.html', text: doc(complete) },
+      { path: 'dist/b.html', text: doc(complete) },
+    ]),
+    []
+  );
+
+  // A key emitted by NO page is now reported once per page, so the cross-page tally added nothing a
+  // per-page rule could not say better. Vacuity is a different fact and keeps its own line.
+  assert.deepEqual(texts([]), ['no persisted node in any page']);
+});
+
+// F-F1's declared table. The built `/admin` ships three of the six keys (Ruling J: no order
+// controls, no cart panel, no bottom tab bar), and that spread is written down rather than
+// inferred from whatever the build emits. A table rather than a heuristic is the point: a future
+// page that drops chrome has to edit ADMIN_DROPPED_KEYS, which is a reviewable act, while a
+// tally that "tolerates" a missing key silently weakens the contract.
+test('findRouterContract declares the /admin key set instead of inferring it', () => {
+  const meta = '<meta name="astro-view-transitions-enabled" content="true">';
+  const node = (k) => `<div data-astro-transition-persist="${k}"></div>`;
+  const doc = (keys) => `<head>${meta}</head><body>${keys.map(node).join('')}</body>`;
+  const texts = (pages) => findRouterContract(pages, PERSIST_KEYS).map((f) => f.text);
+  // Written out, not derived from the guard's own table: if ADMIN_DROPPED_KEYS changes, this test
+  // has to change with it. That is the reviewable act the comment above claims.
+  const adminKeys = ['nav-rail', 'mobile-topbar', 'cart-drawer'];
+
+  // The correct /admin, refused by the old all-six rule — Ruling S's landmine, caught here by
+  // running the new rule against the shipped shape rather than by argument.
+  assert.deepEqual(texts([{ path: 'dist/admin/index.html', text: doc(adminKeys) }]), []);
+
+  // An approved chrome key in the WRONG document: /admin carrying the tab bar means the page and
+  // the table disagree. One defect, one finding — not a silent pass.
+  assert.deepEqual(
+    texts([{ path: 'dist/admin/index.html', text: doc([...adminKeys, 'tab-bar']) }]),
+    ['unexpected key tab-bar on dist/admin/index.html — /admin ships no order chrome']
+  );
+
+  // A customer page may not use the admin exemption by accident of path shape: OS-native separators
+  // are normalised, so `dist\admin\index.html` is still /admin and still must not be demanded of.
+  assert.deepEqual(texts([{ path: 'dist\\admin\\index.html', text: doc(adminKeys) }]), []);
+  // And the same normalisation cuts the other way — a backslash path is not an admin page.
+  assert.deepEqual(texts([{ path: 'dist\\menu\\index.html', text: doc(adminKeys) }]).length, 3);
 });
 
 test('every router-contract failure is printable by the guard', () => {
@@ -665,5 +732,144 @@ test('every check 9 predicate reads comment-stripped CSS', () => {
     findTransitionCss(sheetPlus(VALUE).replace(tabBarCarve, `/* ${tabBarCarve} */`)).includes(
       'no carve-out rule for maghapon-tab-bar (group old new not stopped)'
     )
+  );
+});
+
+// F-F3. `stopsRootPair` used to be three text tests over one block's text, so a reduce block that
+// merely MENTIONS both root pseudo-elements while stopping an unrelated rule satisfied all three
+// and animated the page anyway (review mutant M-C, `mention-not-stop`, which returned []). It is
+// now structural: within the block, the rule whose OWN selector names
+// `::view-transition-old(root)` must carry a declaration resolving to `none` in that rule's OWN
+// body, and likewise for `new`, both in the same block. The accepted-value widening below is
+// load-bearing in the other direction: the shipped sheet carries
+// `@media (prefers-reduced-motion:reduce){.skeleton{animation:none}}` as its fourth block, and a
+// root stop's body BEGINS at the declaration, so a predicate that only accepted `animation:` after
+// a `;`, or only with `!important`, refused a correct file. That is Ruling S's landmine, and it was
+// caught by running the new rule against `dist/_astro/Base.DthEEQz0.css`, not by argument.
+test('findTransitionCss requires the reduced-motion stop inside each root rule', () => {
+  const both = '::view-transition-old(root),::view-transition-new(root)';
+  // sheetPlus('') is the compliant sheet with NO reduce block, so every block below is the only one
+  // the check can read — a fixture that left a passing block in place would assert nothing.
+  const sheet = (body) =>
+    findTransitionCss(sheetPlus('') + `@media (prefers-reduced-motion:reduce){${body}}`);
+  const FAIL = ['prefers-reduced-motion does not stop the root animation'];
+
+  // The shape motion.css actually ships, and the legal spellings the structural read must accept.
+  assert.deepEqual(sheet(`${both}{animation:none!important}`), []);
+  assert.deepEqual(sheet(`${both}{animation:none}`), []);
+  assert.deepEqual(sheet(`${both}{animation-name:none}`), []);
+  assert.deepEqual(sheet(`${both}{opacity:1;animation:none!important}`), []);
+  assert.deepEqual(sheet(`${both}{animation:420ms ease both none}`), []);
+  // `@media` inside `@media` is legal CSS and a stop one level down stops just as dead.
+  assert.deepEqual(
+    sheet(`@media (min-width:1px){${both}{animation:none!important}}`),
+    []
+  );
+
+  // M-C, the mutant that survived: the pair is named, an unrelated rule is stopped, the root
+  // animation runs. One block, both halves of the lie.
+  assert.deepEqual(sheet(`${both}{opacity:1}body{animation:none!important}`), FAIL);
+  // Only one of the pair: a slide-out with no slide-in is not a stop.
+  assert.deepEqual(
+    sheet('::view-transition-old(root){animation:none}::view-transition-new(root){opacity:1}'),
+    FAIL
+  );
+  // `animation-duration: 0.01ms` is Phase 0's blanket component stop, not a root stop — it shortens
+  // the animation rather than ending it, and the property name must be anchored to a declaration.
+  assert.deepEqual(sheet(`${both}{animation-duration:0.01ms!important}`), FAIL);
+  assert.deepEqual(sheet(`${both}{animation-timing-function:none}`), FAIL);
+});
+
+// F-F2. A `view-transition-name` the shell never persists has no carve-out for the loop above to
+// look for, so `#tab-bar { view-transition-name: maghapon-tabbar }` — a typo of an approved name —
+// kept both halves of the contract green while the tab bar reloaded with the page (the review's
+// `typo name` case, which returned []). Only the `maghapon-` prefix is collected, because that
+// prefix IS this project's naming contract; guard.mjs states the remaining limit.
+test('findTransitionCss refuses a view-transition-name that is not a persisted-node name', () => {
+  const rogue = '#tab-bar{view-transition-name:maghapon-tabbar}';
+  const named = (n) => `.x{view-transition-name:${n}}`;
+
+  // The single-source input has no file to name, so the finding is the bare fact.
+  assert.deepEqual(
+    findTransitionCss(sheetPlus(VALUE) + rogue),
+    ['view-transition-name: maghapon-tabbar is applied but is not a persisted-node name']
+  );
+
+  // With a path, it names the sheet the operator can open — the same discipline as the per-source
+  // application tally above.
+  assert.deepEqual(
+    findTransitionCss([{ path: 'src/styles/motion.css', text: sheetPlus(VALUE) + rogue }]),
+    [
+      'view-transition-name: maghapon-tabbar is applied in src/styles/motion.css ' +
+        'but is not a persisted-node name',
+    ]
+  );
+
+  // One defect, one finding: the typo applied twice in one file is not reported twice.
+  assert.deepEqual(
+    findTransitionCss(sheetPlus(VALUE) + rogue + rogue),
+    ['view-transition-name: maghapon-tabbar is applied but is not a persisted-node name']
+  );
+
+  // The existing case must NOT be double-reported: a second element stealing a REAL name is still
+  // exactly one finding, from the per-source tally, because the rogue rule skips approved names.
+  assert.deepEqual(
+    findTransitionCss(sheetPlus(VALUE) + named('maghapon-tab-bar') + named('maghapon-tab-bar')),
+    ['view-transition-name: maghapon-tab-bar is applied 2 times — one name may name one element']
+  );
+
+  // Both defects at once are both reported, and neither swallows the other.
+  assert.deepEqual(
+    findTransitionCss(
+      sheetPlus(VALUE) + named('maghapon-tab-bar') + named('maghapon-tab-bar') + rogue
+    ).sort(),
+    [
+      'view-transition-name: maghapon-tab-bar is applied 2 times — one name may name one element',
+      'view-transition-name: maghapon-tabbar is applied but is not a persisted-node name',
+    ].sort()
+  );
+});
+
+// F-F4. Two predicates in check 9 had no test that could kill them: `defined > 1` (review mutant
+// G11 removed the branch and nothing failed) and the DERIVATION of TRANSITION_NAMES from
+// PERSIST_KEYS (G13). The derivation matters more than it looks — a hand-listed name array would
+// let a seventh persisted node ship with no carve-out rule and no complaint. Both are pinned here;
+// `node_modules/.cache/maghapon/t9-final-fix-mut.mjs` shows each assertion failing against a copy
+// of the guard with its branch deleted.
+test('findTransitionCss counts a duplicated @keyframes', () => {
+  const again = '@keyframes maghapon-page-in{from{opacity:0}}';
+  assert.deepEqual(
+    findTransitionCss(sheetPlus(VALUE) + again),
+    ['@keyframes maghapon-page-in is defined 2 times']
+  );
+  // The count is the count: three definitions say 3, so the operator can go delete two.
+  assert.deepEqual(
+    findTransitionCss(sheetPlus(VALUE) + again + again),
+    ['@keyframes maghapon-page-in is defined 3 times']
+  );
+  // One definition stays silent — the branch is a duplicate detector, not a presence requirement.
+  assert.deepEqual(findTransitionCss(sheetPlus(VALUE)), []);
+});
+
+test('TRANSITION_NAMES is derived from PERSIST_KEYS, not hand-listed beside it', () => {
+  assert.deepEqual(TRANSITION_NAMES, PERSIST_KEYS.map((k) => `maghapon-${k}`));
+  // The pairing the derivation exists for: one name per persisted key, in the same order, so a key
+  // added to the shell cannot be missing from the CSS contract this check enforces.
+  assert.equal(TRANSITION_NAMES.length, PERSIST_KEYS.length);
+
+  // The value assertions above cannot see review mutant G13: a hand-listed array of the SAME six
+  // names satisfies a value comparison, and the drift it warns about (rename a key in PERSIST_KEYS,
+  // keep the old name in the list) only shows up once the two have already diverged. So the
+  // derivation itself is pinned on the source, the way `tests/arrival-order.test.mjs` pins the
+  // arrival order: any expression over `PERSIST_KEYS` passes, a literal list does not. This reads
+  // the same module the test imports, so a copy of the guard relocated by a mutant harness is read
+  // as its own source, not as the real one.
+  const source = readFileSync(new URL('../scripts/guard.mjs', import.meta.url), 'utf8');
+  const declaration = /export const TRANSITION_NAMES\s*=\s*([\s\S]*?);\n/.exec(source);
+  assert.ok(declaration, 'no `export const TRANSITION_NAMES = …;` in the guard source');
+  assert.match(
+    declaration[1],
+    /PERSIST_KEYS/,
+    'TRANSITION_NAMES must be computed from PERSIST_KEYS, not written out beside it'
   );
 });

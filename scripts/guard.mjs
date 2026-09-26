@@ -145,6 +145,23 @@ function contractFail(path, text, at = 0, src = '') {
   return { path, line: src ? src.slice(0, at).split('\n').length : 1, text };
 }
 
+// Ruling J: the built `/admin` renders no order controls, no cart panel and no bottom tab bar, so
+// it ships three of the six keys while every other built page ships all six. That spread is
+// DECLARED, never inferred from whatever the build happens to emit — a Phase 2/3 page that
+// legitimately drops chrome has to edit this list, which is a reviewable act, instead of silently
+// weakening a tally.
+export const ADMIN_DROPPED_KEYS = ['global-controls', 'cart-panel', 'tab-bar'];
+
+// POSIX `/` is what `main()` hands this function
+// (`relative(ROOT, p).split(sep).join('/')`), but a caller that passes OS-native paths must not be
+// able to make `/admin` look like a customer page and so demand chrome of it — that is a false
+// refusal, Ruling S's landmine.
+function expectedKeysFor(path, approved) {
+  const posix = String(path).replace(/\\/g, '/');
+  if (!posix.startsWith('dist/admin/')) return approved;
+  return approved.filter((k) => !ADMIN_DROPPED_KEYS.includes(k));
+}
+
 export function findRouterContract(pages, approved = PERSIST_KEYS) {
   const found = [];
   const failures = [];
@@ -176,22 +193,39 @@ export function findRouterContract(pages, approved = PERSIST_KEYS) {
         failures.push(contractFail(page.path, why, at, page.text));
       }
     }
+    // Completeness is judged against the set THIS page owes, never against the union of all pages.
+    // The union tally this replaced passed the exact defect the check exists for: one page dropping
+    // `tab-bar` while the other five still emitted it read as a green run (the whole-branch
+    // review's M-A mutant). `/admin`'s three-key shape is legal only because it is declared above.
+    // What this proves is EMISSION, per document — that the attribute is in the HTML the build
+    // wrote. It never proves SURVIVAL: a key can be emitted on both pages and still fail to pair
+    // across a swap, and that half is exit-record §7.2's claim, measured in a browser, not here.
+    const expected = expectedKeysFor(page.path, approved);
+    for (const key of expected) {
+      if (!perPage.has(key)) {
+        const why = `key ${key} absent on ${page.path} — this page must emit it`;
+        failures.push(contractFail(page.path, why));
+      }
+    }
+    // An approved chrome key in the wrong document — the same drift seen from the other side: a
+    // persisted order panel appearing inside `/admin`, which renders none. Unapproved values are
+    // already named by the loop above, so this stays silent on them; one defect, one finding.
+    for (const key of perPage.keys()) {
+      if (!expected.includes(key) && approved.includes(key)) {
+        const why = `unexpected key ${key} on ${page.path} — /admin ships no order chrome`;
+        failures.push(contractFail(page.path, why));
+      }
+    }
   }
-  // Union rule: the built `/admin` is the only page that drops keys — it carries `nav-rail`,
-  // `mobile-topbar` and `cart-drawer` and not `global-controls`, `cart-panel` or `tab-bar`
-  // (Ruling J) — while `/`, `/menu`, `/booking`, `/my-orders` and `404.html` each carry all six.
-  // So keys are tallied across ALL pages, and the per-page rule stays "no rogue value". A dropped
-  // `transition:persist` then surfaces as `approved key never emitted` rather than a green run.
+  // Vacuity tripwire, kept; the union loop it sits beside is deleted, because a key emitted by no
+  // page is now reported absent by every page, so the cross-page tally said nothing the per-page
+  // rule does not say better. "No persisted node anywhere" is still a different fact from "this
+  // page is missing that node", and the operator needs it stated as one line.
+  // Appended, not returned instead: the enable-meta findings above are what tell the operator
+  // whether the router is on at all, and a run that traded one for the other answers nothing.
   if (!found.length) {
-    // Appended, not returned instead: the enable-meta findings above are what tell the operator
-    // whether the router is on at all, and a run that traded one for the other answers nothing.
     failures.push(contractFail('dist', 'no persisted node in any page'));
     return failures;
-  }
-  for (const key of approved) {
-    if (!found.includes(key)) {
-      failures.push(contractFail('dist', `approved key never emitted: ${key}`));
-    }
   }
   return failures;
 }
@@ -202,16 +236,46 @@ export function findRouterContract(pages, approved = PERSIST_KEYS) {
 export const TRANSITION_KEYFRAMES = ['maghapon-page-in', 'maghapon-page-out'];
 export const TRANSITION_NAMES = PERSIST_KEYS.map((k) => `maghapon-${k}`);
 
-function balancedBody(text, open) {
+function matchBrace(text, open) {
   let depth = 0;
   for (let i = open; i < text.length; i += 1) {
     if (text[i] === '{') depth += 1;
     else if (text[i] === '}') {
       depth -= 1;
-      if (depth === 0) return text.slice(open + 1, i);
+      if (depth === 0) return i;
     }
   }
-  return '';
+  return -1;
+}
+
+function balancedBody(text, open) {
+  const close = matchBrace(text, open);
+  return close === -1 ? '' : text.slice(open + 1, close);
+}
+
+// The rules declared inside one block's body, as `{ selector, declarations }`. Nested at-rules are
+// walked into rather than skipped: `@media` inside `@media` (or inside `@supports`) is legal CSS,
+// and a stop authored one level down stops the animation just as dead — refusing that shape would
+// be Ruling S's landmine. An unterminated `{` yields the rest of the text as its body, which is how
+// a browser reads it too. No body `reducedMotionBlocks` returns can reach that branch — a slice
+// taken by `matchBrace` is balanced by construction — so it is this helper's own totality guard for
+// a future caller, and it has no fixture; `node_modules/.cache/maghapon/t9ff-mut.mjs` records the
+// mutant of it as an equivalent mutant, and the differential fuzz beside it shows why.
+function rulesIn(body) {
+  const rules = [];
+  let i = 0;
+  while (i < body.length) {
+    const open = body.indexOf('{', i);
+    if (open === -1) break;
+    const close = matchBrace(body, open);
+    const end = close === -1 ? body.length : close;
+    const prelude = body.slice(i, open);
+    const inner = body.slice(open + 1, end);
+    if (/^\s*@/.test(prelude)) rules.push(...rulesIn(inner));
+    else rules.push({ selector: prelude, declarations: inner });
+    i = end + 1;
+  }
+  return rules;
 }
 
 // Two accepted forms of the feature test — `: reduce` and the bare `(prefers-reduced-motion)` —
@@ -221,11 +285,12 @@ function balancedBody(text, open) {
 // file is a landmine, because it also prints a false finding about it — `no prefers-reduced-motion
 // block` — while a check that accepts an incorrect one is merely loud.
 //
-// Each block's own body is what is read: a block that merely mentions the root pair does not stop
-// anything. There is more than one reduce block on purpose — Astro's head CSS, motion.css's
-// component-motion block from Phase 0, and §6.4's root stop — so reading only the first would
-// make this check fail a file that is correct (measured: the bundle's first block is Astro's and
-// never names `(root)`). The rule is therefore "some block does".
+// Each block's own body is what is read, and inside it the rule whose selector names the
+// pseudo-element — a block that merely mentions the root pair does not stop anything (see
+// `stopsRootPair` below). There is more than one reduce block on purpose — Astro's head CSS,
+// motion.css's component-motion block from Phase 0, and §6.4's root stop — so reading only the
+// first would make this check fail a file that is correct (measured: the bundle's first block is
+// Astro's and never names `(root)`). The rule is therefore "some block does".
 function reducedMotionBlocks(cssText) {
   const bodies = [];
   const open = /@media[^{]*\(\s*prefers-reduced-motion\s*(?::\s*reduce\s*)?\)[^{]*\{/g;
@@ -334,6 +399,31 @@ export function findTransitionCss(input) {
     }
   }
 
+  // A `view-transition-name` the shell never persists has no carve-out to find, so the loop above
+  // cannot see it. A typo of an approved name — `#tab-bar { view-transition-name:
+  // maghapon-tabbar }` — leaves the node named, keeps Astro's default cross-fade, and shows the
+  // exact "the tab bar reloaded" tell Ruling C exists to prevent, while both halves of the
+  // contract stay green (review finding F-F2). Scope, stated: only the `maghapon-` prefix is
+  // collected, because that prefix IS this project's naming contract; a node named something else
+  // entirely drops to zero applications of its approved name, which is the limit documented
+  // above, not a hole new to this rule. The refusal runs the other way too, and is the cheaper
+  // half to name: a Phase 2 shared-element transition that deliberately takes a `maghapon-` name
+  // WITHOUT persisting its node is refused here, and the honest answer is to widen this rule's
+  // contract on purpose — the same reviewable act `ADMIN_DROPPED_KEYS` above is — not to rename
+  // the glyph to slip past a prefix test.
+  // The repeat of a real name is reported once, by the per-source tally above, never twice.
+  const rogue = new Set();
+  for (const src of clean) {
+    for (const m of src.text.matchAll(/view-transition-name:\s*(maghapon-[\w-]+)/g)) {
+      const name = m[1];
+      if (TRANSITION_NAMES.includes(name) || rogue.has(`${src.path}|${name}`)) continue;
+      rogue.add(`${src.path}|${name}`);
+      const where = src.path ? ` in ${src.path}` : '';
+      const why = `${name} is applied${where} but is not a persisted-node name`;
+      problems.push(`view-transition-name: ${why}`);
+    }
+  }
+
   // Any keyframe that is not ours but is named by a view-transition rule is a second animation on
   // one group — the Ruling B risk, which arrives from Astro's head CSS, not from motion.css.
   for (const m of cssText.matchAll(/@keyframes\s+([\w-]+)/g)) {
@@ -345,10 +435,24 @@ export function findTransitionCss(input) {
   }
 
   const blocks = reducedMotionBlocks(cssText);
-  const stopsRootPair = (b) =>
-    /::view-transition-old\(root\)/.test(b) &&
-    /::view-transition-new\(root\)/.test(b) &&
-    /animation:\s*none\s*!important/.test(b);
+  // Structural, not "the block's text contains these three things": a reduce block that merely
+  // MENTIONS both root pseudos and stops some unrelated rule with `animation: none !important`
+  // satisfies three text tests and animates anyway (review mutant M-C, which returned []). So the
+  // declaration is looked for inside the body of a rule whose OWN selector names that pseudo, per
+  // pseudo, and both must hold in the same block. The accepted value is a declaration on
+  // `animation`/`animation-name` whose value contains `none`, which covers `animation: none
+  // !important`, a plain `animation: none`, `animation-name`, and a shorthand that puts the name
+  // last — refusing a legal spelling is Ruling S's landmine. The property name is anchored to a
+  // declaration start (the head of the body, or after a `;`) and must be followed by `:`, so
+  // `animation-duration: 0.01ms !important` — Phase 0's blanket component stop — never counts.
+  const stopsRootPseudo = (blockBody, word) => {
+    const named = new RegExp(`::view-transition-${word}\\(root\\)`);
+    const stopped = /(^|[;])\s*animation(?:-name)?\s*:[^;}]*\bnone\b/;
+    return rulesIn(blockBody).some(
+      (rule) => named.test(rule.selector) && stopped.test(rule.declarations)
+    );
+  };
+  const stopsRootPair = (b) => stopsRootPseudo(b, 'old') && stopsRootPseudo(b, 'new');
   if (!blocks.length) {
     problems.push('no prefers-reduced-motion block');
   } else if (!blocks.some(stopsRootPair)) {
