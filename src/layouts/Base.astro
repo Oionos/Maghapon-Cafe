@@ -442,6 +442,15 @@ const isOrders = path === '/my-orders';
       }
 
       function initReveals() {
+        // The observer outlives every document this session shows it, so the arrival boundary is
+        // the only place its target list can be reset: a swap replaces <body>, and without this the
+        // previous page's below-the-fold `[data-reveal]` nodes stay observed forever — up to 42 per
+        // /menu visit — as live references to detached DOM. Re-setting here cannot drop a pending
+        // reveal: every observable node is one the query below re-adds, and no `transition:persist`
+        // chrome node carries `data-reveal` (measured across src/ and dist/), so nothing that
+        // survives a swap is mid-flight. Reveals still fire once: the callback unobserves what it
+        // has already shown, and `revealed` is a class on the node, not observer state.
+        io.disconnect();
         document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
       }
 
