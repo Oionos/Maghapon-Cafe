@@ -8,6 +8,14 @@
 // pass in Tasks 6 and 9. What the stub does reach is the seams: consumePendingScroll() and
 // isRouterActive() both take the document they query, so their selector and their absent-target
 // branch are pinned here rather than assumed.
+// Ordering dependency, named because nothing here enforces it (F-F7). registerPage() carries
+// Ruling H's fallback — a page registering after boot() on the active path self-inits — while
+// addArrivalHook() has no such fallback on purpose, so a hook registered after the first arrive()
+// misses that arrival. Today that is harmless only because the shell chunk is emitted LAST in the
+// document's script list on all six routes, which is what puts CartDrawer's and CartPanel's hooks
+// and the shell's own back-press hook ahead of boot(arrive). An Astro output-ordering change would
+// cost those three one render, silently, and no test in this repo asserts the order — so if that
+// property ever moves, the fix belongs here, not in a component.
 const inits = new Map();
 const controllers = new Map();
 const hooks = [];
