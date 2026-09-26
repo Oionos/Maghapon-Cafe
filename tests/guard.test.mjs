@@ -526,7 +526,7 @@ test('findTransitionCss needs the keyframes, the root wiring and a reduced-motio
   const NOT_THE_ROOT = '@media (prefers-reduced-motion:reduce){body{animation:none}}';
   assert.ok(
     findTransitionCss(full.replace(/@media[^]*?\}\}/, NOT_THE_ROOT)).includes(
-      'prefers-reduced-motion does not stop the root animation'
+      'prefers-reduced-motion does not stop the root pair with `animation: none`'
     )
   );
 
@@ -535,7 +535,7 @@ test('findTransitionCss needs the keyframes, the root wiring and a reduced-motio
     '{animation:none!important}}';
   assert.ok(
     findTransitionCss(full.replace(/@media[^]*?\}\}/, OLD_ONLY)).includes(
-      'prefers-reduced-motion does not stop the root animation'
+      'prefers-reduced-motion does not stop the root pair with `animation: none`'
     )
   );
 
@@ -738,9 +738,10 @@ test('every check 9 predicate reads comment-stripped CSS', () => {
 // F-F3. `stopsRootPair` used to be three text tests over one block's text, so a reduce block that
 // merely MENTIONS both root pseudo-elements while stopping an unrelated rule satisfied all three
 // and animated the page anyway (review mutant M-C, `mention-not-stop`, which returned []). It is
-// now structural: within the block, the rule whose OWN selector names
+// now structural: within a block, the rule whose OWN selector names
 // `::view-transition-old(root)` must carry a declaration resolving to `none` in that rule's OWN
-// body, and likewise for `new`, both in the same block. The accepted-value widening below is
+// body, and likewise for `new` — each pseudo across the reduce blocks, not both inside one of them
+// (re-review Minor-1's shape S3). The accepted-value widening below is
 // load-bearing in the other direction: the shipped sheet carries
 // `@media (prefers-reduced-motion:reduce){.skeleton{animation:none}}` as its fourth block, and a
 // root stop's body BEGINS at the declaration, so a predicate that only accepted `animation:` after
@@ -752,7 +753,7 @@ test('findTransitionCss requires the reduced-motion stop inside each root rule',
   // the check can read — a fixture that left a passing block in place would assert nothing.
   const sheet = (body) =>
     findTransitionCss(sheetPlus('') + `@media (prefers-reduced-motion:reduce){${body}}`);
-  const FAIL = ['prefers-reduced-motion does not stop the root animation'];
+  const FAIL = ['prefers-reduced-motion does not stop the root pair with `animation: none`'];
 
   // The shape motion.css actually ships, and the legal spellings the structural read must accept.
   assert.deepEqual(sheet(`${both}{animation:none!important}`), []);
@@ -777,6 +778,14 @@ test('findTransitionCss requires the reduced-motion stop inside each root rule',
   // `animation-duration: 0.01ms` is Phase 0's blanket component stop, not a root stop — it shortens
   // the animation rather than ending it, and the property name must be anchored to a declaration.
   assert.deepEqual(sheet(`${both}{animation-duration:0.01ms!important}`), FAIL);
+  // S3 (re-review Minor-1): motion.css already carries two reduce blocks (`:71` and `:165`) and the
+  // sheet is authored as slices under `src/styles/`, so stopping `old` in one block and `new` in
+  // another is legal CSS that halts both. The pair is a UNION across reduce blocks, per pseudo —
+  // not a requirement that one block carries both.
+  const onePer = (word) =>
+    `@media (prefers-reduced-motion:reduce){::view-transition-${word}(root)` +
+    `{animation:none!important}}`;
+  assert.deepEqual(findTransitionCss(sheetPlus('') + onePer('old') + onePer('new')), []);
   assert.deepEqual(sheet(`${both}{animation-timing-function:none}`), FAIL);
 });
 

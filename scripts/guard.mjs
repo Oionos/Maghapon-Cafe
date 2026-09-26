@@ -287,10 +287,10 @@ function rulesIn(body) {
 //
 // Each block's own body is what is read, and inside it the rule whose selector names the
 // pseudo-element — a block that merely mentions the root pair does not stop anything (see
-// `stopsRootPair` below). There is more than one reduce block on purpose — Astro's head CSS,
+// `stopsRootPseudo` below). There is more than one reduce block on purpose — Astro's head CSS,
 // motion.css's component-motion block from Phase 0, and §6.4's root stop — so reading only the
 // first would make this check fail a file that is correct (measured: the bundle's first block is
-// Astro's and never names `(root)`). The rule is therefore "some block does".
+// Astro's and never names `(root)`). The rule is therefore "some block does", per pseudo.
 function reducedMotionBlocks(cssText) {
   const bodies = [];
   const open = /@media[^{]*\(\s*prefers-reduced-motion\s*(?::\s*reduce\s*)?\)[^{]*\{/g;
@@ -439,12 +439,13 @@ export function findTransitionCss(input) {
   // MENTIONS both root pseudos and stops some unrelated rule with `animation: none !important`
   // satisfies three text tests and animates anyway (review mutant M-C, which returned []). So the
   // declaration is looked for inside the body of a rule whose OWN selector names that pseudo, per
-  // pseudo, and both must hold in the same block. The accepted value is a declaration on
-  // `animation`/`animation-name` whose value contains `none`, which covers `animation: none
-  // !important`, a plain `animation: none`, `animation-name`, and a shorthand that puts the name
-  // last — refusing a legal spelling is Ruling S's landmine. The property name is anchored to a
-  // declaration start (the head of the body, or after a `;`) and must be followed by `:`, so
-  // `animation-duration: 0.01ms !important` — Phase 0's blanket component stop — never counts.
+  // pseudo; across the reduce blocks, both pseudos must be stopped. The accepted value is a
+  // declaration on `animation`/`animation-name` whose value contains `none`, which covers
+  // `animation: none !important`, a plain `animation: none`, `animation-name`, and a shorthand
+  // that puts the name last — refusing a legal spelling is Ruling S's landmine. The property
+  // name is anchored to a declaration start (the head of the body, or after a `;`) and must be
+  // followed by `:`, so `animation-duration: 0.01ms !important` — Phase 0's blanket component
+  // stop — never counts.
   const stopsRootPseudo = (blockBody, word) => {
     const named = new RegExp(`::view-transition-${word}\\(root\\)`);
     const stopped = /(^|[;])\s*animation(?:-name)?\s*:[^;}]*\bnone\b/;
@@ -452,11 +453,19 @@ export function findTransitionCss(input) {
       (rule) => named.test(rule.selector) && stopped.test(rule.declarations)
     );
   };
-  const stopsRootPair = (b) => stopsRootPseudo(b, 'old') && stopsRootPseudo(b, 'new');
+  // Per pseudo across the whole set of reduce blocks, not per block: the shipped sheet
+  // already carries two reduce blocks (`src/styles/motion.css:71` and `:165`) and the sheet
+  // is authored as slices under `src/styles/`, so `old` stopped in one and `new` in another
+  // is legal CSS that halts both. Requiring the pair inside one block refused it (re-review
+  // Minor-1, shape S3) while printing a reason that was false. What stays refused on purpose:
+  // a duration stop (`animation: 0s`, `animation-duration: 0s`) — the contract is that the
+  // NAME is gone, not that the movement is short — and a block that stops some unrelated rule
+  // while merely naming a root pseudo (F-F3's mutant M-C).
+  const stops = (word) => blocks.some((b) => stopsRootPseudo(b, word));
   if (!blocks.length) {
     problems.push('no prefers-reduced-motion block');
-  } else if (!blocks.some(stopsRootPair)) {
-    problems.push('prefers-reduced-motion does not stop the root animation');
+  } else if (!(stops('old') && stops('new'))) {
+    problems.push('prefers-reduced-motion does not stop the root pair with `animation: none`');
   }
   return problems;
 }
