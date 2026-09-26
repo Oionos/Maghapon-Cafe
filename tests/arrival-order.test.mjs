@@ -59,6 +59,25 @@ test('a failed arrival step is logged and left readable from outside the module'
   assert.match(shell[1], /\barrivalFailures\b/, 'the failure log must be reachable from a probe');
 });
 
+// F-F7: the back decision and the probe surface are two different things, and conflating them is a
+// correctness bug rather than a style one — `window.maghaponShell` is a plain global, so any later
+// script can replace the object and make every press read "nothing is open" while the panel covers
+// the screen. Source-asserted like the tests above it: Base.astro is a layout, not a module.
+test('the back-press overlay check reads the shell closure, never the probe global', () => {
+  const src = readFileSync(new URL('../src/layouts/Base.astro', import.meta.url), 'utf8');
+  const seam = src.match(/const backPress = createBackPress\(\s*\{([\s\S]*?)\n\s*\}\)/);
+  assert.ok(seam, 'no createBackPress() seam found in Base.astro');
+  // Comments excluded first: prose naming the global is not a read of it, and the defect this pins
+  // is exactly one where the comment and the code disagreed.
+  const code = seam[1].replace(/^\s*\/\/.*$/gm, '');
+  const predicate = code.match(/isOverlayOpen:\s*\(\)\s*=>\s*([^,]+),/);
+  assert.ok(predicate, 'no isOverlayOpen() predicate on the back seam');
+  assert.doesNotMatch(predicate[1], /maghaponShell/, 'the probe object must not decide a press');
+  assert.doesNotMatch(predicate[1], /window\./, 'nor may anything reached through the global');
+  assert.match(predicate[1], /\bdrawerOpen\b/, 'must read the closure truth for the drawer');
+  assert.match(predicate[1], /\bpanelOpen\b/, 'and the closure truth for the panel');
+});
+
 // F-F5: the reveal observer is a module-scope singleton, so the arrival boundary is the only place
 // its target list can be reset — an accumulation of detached nodes is invisible to every other test
 // here (an observer is not a listener, so §12 row 1's registration census cannot see it either).

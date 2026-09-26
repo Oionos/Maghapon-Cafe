@@ -589,8 +589,10 @@ const isOrders = path === '/my-orders';
       }
 
       const backPress = createBackPress({
-        isOverlayOpen: () =>
-          Boolean(window.maghaponShell?.drawerOpen) || Boolean(window.maghaponShell?.panelOpen),
+        // The closure's truth, never the probe object: `window.maghaponShell` is a plain
+        // global any later script can replace, and a back decision that lies about an open
+        // overlay swallows the press — the user gets a toast and a panel still on screen.
+        isOverlayOpen: () => drawerOpen || panelOpen,
         canGoBack: () => history.length > 1,
         goBack: () => history.back(),
         exit: () =>
