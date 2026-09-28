@@ -28,6 +28,7 @@ import Base from '../layouts/Base.astro';
   </div>
 
   <script>
+    import { registerPage } from '../lib/nav.js';
     import {
       listOrders,
       seedOrders,
@@ -35,57 +36,60 @@ import Base from '../layouts/Base.astro';
       listBookings,
     } from '../lib/store/orderStore.js';
 
-    const STATUSES = ['Received', 'Preparing', 'Ready', 'Served'];
-    const SEED = {
-      id: 'MAG-1001',
-      customer: { name: 'Mia', phone: '0917 000 0000' },
-      type: 'Pickup',
-      items: [
-        { name: 'Sea Salt Cloud Latte', variant: 'Iced 16oz', modifiers: [], qty: 2, unit: 170 },
-        { name: 'Salted Choco Chip Cookie', variant: null, modifiers: [], qty: 1, unit: 130 },
-      ],
-      total: 470,
-      status: 'Received',
-      createdAt: new Date().toISOString(),
-    };
+    registerPage('/admin', init);
 
-    function esc(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-    function manilaTime(iso) {
-      return new Date(iso).toLocaleString('en-PH', {
-        timeZone: 'Asia/Manila',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
-    function getOrders() {
-      let orders = listOrders();
-      if (orders.length === 0) {
-        orders = [SEED];
-        seedOrders(orders);
+    function init({ signal }) {
+      const STATUSES = ['Received', 'Preparing', 'Ready', 'Served'];
+      const SEED = {
+        id: 'MAG-1001',
+        customer: { name: 'Mia', phone: '0917 000 0000' },
+        type: 'Pickup',
+        items: [
+          { name: 'Sea Salt Cloud Latte', variant: 'Iced 16oz', modifiers: [], qty: 2, unit: 170 },
+          { name: 'Salted Choco Chip Cookie', variant: null, modifiers: [], qty: 1, unit: 130 },
+        ],
+        total: 470,
+        status: 'Received',
+        createdAt: new Date().toISOString(),
+      };
+
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       }
-      return orders;
-    }
+      function manilaTime(iso) {
+        return new Date(iso).toLocaleString('en-PH', {
+          timeZone: 'Asia/Manila',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+      function getOrders() {
+        let orders = listOrders();
+        if (orders.length === 0) {
+          orders = [SEED];
+          seedOrders(orders);
+        }
+        return orders;
+      }
 
-    function render() {
-      const orders = getOrders();
-      const counts = {};
-      STATUSES.forEach((s) => (counts[s] = 0));
-      orders.forEach((o) => (counts[o.status] = (counts[o.status] || 0) + 1));
-      document.getElementById('admin-stats').innerHTML = STATUSES.map(
-        (s) => `<div class="admin-stat"><b>${counts[s]}</b><span>${s}</span></div>`
-      ).join('');
+      function render() {
+        const orders = getOrders();
+        const counts = {};
+        STATUSES.forEach((s) => (counts[s] = 0));
+        orders.forEach((o) => (counts[o.status] = (counts[o.status] || 0) + 1));
+        document.getElementById('admin-stats').innerHTML = STATUSES.map(
+          (s) => `<div class="admin-stat"><b>${counts[s]}</b><span>${s}</span></div>`
+        ).join('');
 
-      const list = document.getElementById('orders-list');
-      if (orders.length === 0) {
-        list.innerHTML = '<div class="admin-empty">No orders yet — the pipeline starts when a customer checks out.</div>';
-      } else {
-        list.innerHTML = orders
-          .map(
-            (o) => `
+        const list = document.getElementById('orders-list');
+        if (orders.length === 0) {
+          list.innerHTML = '<div class="admin-empty">No orders yet — the pipeline starts when a customer checks out.</div>';
+        } else {
+          list.innerHTML = orders
+            .map(
+              (o) => `
             <article class="order-card" data-order="${esc(o.id)}">
               <div class="order-head">
                 <span class="order-number">${esc(o.id)}</span>
@@ -112,25 +116,25 @@ import Base from '../layouts/Base.astro';
                   : `<button class="btn btn-primary btn-sm" data-advance="${esc(o.id)}">Advance to ${STATUSES[STATUSES.indexOf(o.status) + 1]}</button>`}
               </div>
             </article>`
-          )
-          .join('');
-        list.querySelectorAll('[data-advance]').forEach((btn) =>
-          btn.addEventListener('click', () => {
-            const o = getOrders().find((x) => x.id === btn.dataset.advance);
-            const next = o && STATUSES[STATUSES.indexOf(o.status) + 1];
-            if (next && updateOrderStatus(o.id, next)) render();
-          })
-        );
-      }
+            )
+            .join('');
+          list.querySelectorAll('[data-advance]').forEach((btn) =>
+            btn.addEventListener('click', () => {
+              const o = getOrders().find((x) => x.id === btn.dataset.advance);
+              const next = o && STATUSES[STATUSES.indexOf(o.status) + 1];
+              if (next && updateOrderStatus(o.id, next)) render();
+            })
+          );
+        }
 
-      const bookings = listBookings();
-      const bList = document.getElementById('bookings-list');
-      if (bookings.length === 0) {
-        bList.innerHTML = '<div class="admin-empty">No booking requests yet.</div>';
-      } else {
-        bList.innerHTML = bookings
-          .map(
-            (b) => `
+        const bookings = listBookings();
+        const bList = document.getElementById('bookings-list');
+        if (bookings.length === 0) {
+          bList.innerHTML = '<div class="admin-empty">No booking requests yet.</div>';
+        } else {
+          bList.innerHTML = bookings
+            .map(
+              (b) => `
             <div class="booking-row">
               <div>
                 <strong>${esc(b.name)}</strong>
@@ -141,14 +145,15 @@ import Base from '../layouts/Base.astro';
                 <span>${b.guests} guest${b.guests === 1 ? '' : 's'} · ${esc(b.eventType)}</span>
               </div>
             </div>`
-          )
-          .join('');
+            )
+            .join('');
+        }
       }
-    }
 
-    render();
-    // Live updates: orders placed in ANOTHER tab of this browser appear here
-    window.addEventListener('storage', render);
-    window.addEventListener('focus', render);
+      render();
+      // Live updates: orders placed in ANOTHER tab of this browser appear here
+      window.addEventListener('storage', render, { signal });
+      window.addEventListener('focus', render, { signal });
+    }
   </script>
 </Base>

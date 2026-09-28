@@ -6,6 +6,7 @@ import '@fontsource/fraunces/600.css';
 import '@fontsource/fraunces/700.css';
 import '@fontsource-variable/geist';
  import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 import { Image } from 'astro:assets';
 import logoImg from '../assets/logo.webp';
 import CartDrawer from '../components/CartDrawer.astro';
@@ -35,6 +36,11 @@ const isOrders = path === '/my-orders';
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/images/hero-coffee.jpg" />
+    <!-- Phase 1's app shell. Head, not body: the meta it writes is valid head content only, and
+         transitionEnabledOnThisPage() queries the whole document, so this is correct-by-spec
+         placement rather than a functional requirement. Every route must render it — §4's contract
+         item 8 measures a destination without it aborting the swap into a full document load. -->
+    <ClientRouter />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
@@ -42,7 +48,11 @@ const isOrders = path === '/my-orders';
     <div class="app-shell">
       <!-- Floating global controls: shop status + the single order trigger, top-right, all widths. -->
       {!isAdmin && (
-        <div class="global-controls" id="global-controls">
+        <div
+          class="global-controls"
+          id="global-controls"
+          transition:persist="global-controls"
+        >
           <span class="status-pill global-status" id="status-pill" role="status" aria-label="Shop status: Checking hours…" title="Checking hours…">
             <span class="status-dot" aria-hidden="true"></span>
             <span class="status-text">Checking hours…</span>
@@ -54,7 +64,12 @@ const isOrders = path === '/my-orders';
         </div>
       )}
       <!-- Desktop nav rail (≥768px) -->
-      <aside class="nav-rail" id="nav-rail" aria-label="Site">
+      <aside
+        class="nav-rail"
+        id="nav-rail"
+        aria-label="Site"
+        transition:persist="nav-rail"
+      >
         <a class="brand" href="/" aria-label="Maghapon Café home">
           <Image src={logoImg} alt="Maghapon Café logo" width={40} priority />
           <span class="brand-copy">Maghapon Café<small>Caloocan · Metro Manila</small></span>
@@ -76,7 +91,7 @@ const isOrders = path === '/my-orders';
             <Icon name="shopping-bag" class="rail-icon" size={22} />
             <span class="rail-label">My orders</span>
           </a>
-          <a href="/#rewards" aria-label="Rewards" title="Rewards">
+          <a href="/#rewards" aria-label="Rewards" title="Rewards" data-hash-nav>
             <Icon name="star" class="rail-icon" size={22} />
             <span class="rail-label">Rewards</span>
           </a>
@@ -101,19 +116,19 @@ const isOrders = path === '/my-orders';
         )}
 
         <!-- Mobile compact top bar (≤767px): brand lockup; admin keeps its status pill. -->
-        <header class="mobile-topbar">
+        <header class="mobile-topbar" transition:persist="mobile-topbar">
           <a class="brand" href="/" aria-label="Maghapon Café home">
             <Image src={logoImg} alt="Maghapon Café logo" width={32} priority />
             <span class="brand-copy">Maghapon Café</span>
           </a>
-          {isAdmin && (
-            <div class="mobile-topbar-actions">
-              <span class="status-pill mobile-status" role="status" aria-label="Shop status: Checking hours…" title="Checking hours…">
-                <span class="status-dot" aria-hidden="true"></span>
-                <span class="status-text">Checking hours…</span>
-              </span>
-            </div>
-          )}
+          {/* Ruling E: rendered on every route, so the persisted topbar has the same children
+              whichever page a swap arrives from; initChromeNav() flips `hidden` per route. */}
+          <div class="mobile-topbar-actions" hidden={isAdmin ? undefined : true}>
+            <span class="status-pill mobile-status" role="status" aria-label="Shop status: Checking hours…" title="Checking hours…">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="status-text">Checking hours…</span>
+            </span>
+          </div>
         </header>
 
         <main id="main-content">
@@ -162,7 +177,7 @@ const isOrders = path === '/my-orders';
     </div>
 
     {!isAdmin && (
-      <nav class="tab-bar" aria-label="Primary">
+      <nav class="tab-bar" aria-label="Primary" transition:persist="tab-bar">
         <a href="/" class={isHome ? 'is-active' : ''} aria-current={isHome ? 'page' : undefined}>
           <Icon name="house" size={22} />
           <span>Home</span>
@@ -188,6 +203,24 @@ const isOrders = path === '/my-orders';
     <CartDrawer />
 
     <script>
+      import {
+        boot,
+        consumePendingScroll,
+        isRouterActive,
+        normalizePath,
+        requestScrollTo,
+        runArrivalSteps,
+        runHooks,
+        runPage,
+      } from '../lib/nav.js';
+      import { addArrivalHook } from '../lib/nav.js';
+      import { BACK, createBackPress, EXIT_WINDOW_MS } from '../lib/back.js';
+      // Static, not dynamic: <ClientRouter /> above already fetches astro's router client, so a
+      // dynamic import() here would buy a promise branch in a click handler
+      // for zero payload saving.
+      // It is safe only because the router is rendered — see Ruling N in the plan.
+      import { navigate } from 'astro:transitions/client';
+
       // ---- Live open/closed status, computed from Manila time (GMT+8) ----
       function tickClock() {
         const pills = document.querySelectorAll('.status-pill');
@@ -209,7 +242,6 @@ const isOrders = path === '/my-orders';
           pill.title = fullText;
         });
       }
-      tickClock();
       setInterval(tickClock, 60000);
 
       // ---- Fade-up reveals on scroll (IntersectionObserver, no library) ----
@@ -223,25 +255,41 @@ const isOrders = path === '/my-orders';
           }),
         { threshold: 0.12 }
       );
-      document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
 
       // ---- Shared order-surface coordinator ----
       // The panel and drawer are both rendered once; this coordinator chooses exactly one
       // surface for the current breakpoint instead of allowing controls to stack them.
-      const shell = document.querySelector('.app-shell');
-      const panel = document.getElementById('cart-panel');
+      // Ruling I: `.app-shell` and `#cart-panel` are looked up on every call and never cached —
+      // `#cart-panel` is rendered `{!isAdmin}`, so one trip through /admin replaces the node a
+      // cached reference would still be pointing at.
+      function shellEl() {
+        return document.querySelector('.app-shell');
+      }
+
+      function panelEl() {
+        return document.getElementById('cart-panel');
+      }
+
+      // Ruling F + I: cached, and bound through this same reference (initRailCollapse) so the
+      // listener and the aria writes can never point at two different nodes. Safe because
+      // `.nav-rail` is one of the six nodes Task 6 gives a stable `transition:persist` key, so a
+      // swap hands back this very element. "Renders on every route" alone would not be enough:
+      // a swap replaces the body subtree even when every route's markup is identical.
       const railToggle = document.getElementById('rail-toggle');
-      const orderToggles = [...document.querySelectorAll('[data-order-toggle]')];
       const desktopQuery = window.matchMedia('(min-width: 1024px)');
       const railQuery = window.matchMedia('(min-width: 1024px)');
-      const panelClose = panel?.querySelector('[data-order-close]');
+      const panelClose = () => panelEl()?.querySelector('[data-order-close]') ?? null;
       const RAIL_STORAGE_KEY = 'maghapon-rail-collapsed';
+      // Rulings G + L: these are the truth. Every class and aria pair on a node is a projection of
+      // them, re-derived on arrival by applyPanel()/applyRail() — never read back off the DOM.
+      let orderToggles = [];
       let panelOpen = false;
       let drawerOpen = false;
       let panelTrigger = null;
+      let railCollapsed = false;
 
       function usesPanel() {
-        return desktopQuery.matches && Boolean(panel);
+        return desktopQuery.matches && Boolean(panelEl());
       }
 
       function syncOrderControls() {
@@ -254,23 +302,34 @@ const isOrders = path === '/my-orders';
           toggle.setAttribute('aria-label', open ? 'Close order menu' : 'Open order menu');
           toggle.title = open ? 'Close order menu' : 'Open order menu';
         });
-        if (panel) panel.setAttribute('aria-hidden', String(!panelOpen));
+      }
+
+      function applyPanel() {
+        const shell = shellEl();
+        const panel = panelEl();
+        if (!shell) return;
+        // panelOpen is the truth; the class and aria pair are its projections onto nodes that a
+        // swap may have just replaced. Skipping this is the inverted-toggle defect Ruling L names.
+        // This is the only writer of #cart-panel's aria-hidden: a second one that used `!panelOpen`
+        // instead of `!on` would claim the panel is visible below the breakpoint that hides it.
+        const on = panelOpen && usesPanel() && Boolean(panel);
+        shell.classList.toggle('cart-panel-open', on);
+        panel?.setAttribute('aria-hidden', String(!on));
       }
 
       function setPanelOpen(next, trigger = null) {
-        if (!shell || !panel || !usesPanel()) {
+        if (!shellEl() || !panelEl() || !usesPanel()) {
           panelOpen = false;
-          shell?.classList.remove('cart-panel-open');
+          applyPanel();
           syncOrderControls();
           return;
         }
         panelOpen = next;
         if (next && trigger) panelTrigger = trigger;
-        shell.classList.toggle('cart-panel-open', next);
-        panel.setAttribute('aria-hidden', String(!next));
+        applyPanel();
         syncOrderControls();
         if (next) {
-          window.requestAnimationFrame(() => panelClose?.focus());
+          window.requestAnimationFrame(() => panelClose()?.focus());
         } else if (panelTrigger?.isConnected) {
           panelTrigger.focus();
         }
@@ -289,17 +348,19 @@ const isOrders = path === '/my-orders';
         window.dispatchEvent(new CustomEvent('maghapon:cart-toggle', { detail: { trigger } }));
       }
 
-      orderToggles.forEach((toggle) => toggle.addEventListener('click', handleOrderToggle));
       document.addEventListener('click', (event) => {
         if (event.target.closest('[data-order-close]')) setPanelOpen(false);
       });
       window.addEventListener('maghapon:drawer-state', (event) => {
         drawerOpen = event.detail?.open === true;
-        if (drawerOpen) setPanelOpen(false);
+        // Only when the panel is actually open: setPanelOpen's close arm re-focuses panelTrigger,
+        // which is set on open and never cleared — a stale one outranks the drawer's restore.
+        if (drawerOpen && panelOpen) setPanelOpen(false);
         syncOrderControls();
       });
 
       function syncRailToggle() {
+        const shell = shellEl();
         if (!railToggle || !shell) return;
         const collapsed = shell.classList.contains('rail-collapsed');
         railToggle.setAttribute('aria-expanded', String(!collapsed));
@@ -315,18 +376,20 @@ const isOrders = path === '/my-orders';
         }
       }
 
-      function setRailCollapsed(next, persist = true) {
+      function applyRail() {
+        const shell = shellEl();
         if (!shell) return;
-        const collapsed = railQuery.matches && next;
-        shell.classList.toggle('rail-collapsed', collapsed);
-        if (persist && railQuery.matches) localStorage.setItem(RAIL_STORAGE_KEY, String(collapsed));
+        shell.classList.toggle('rail-collapsed', railQuery.matches && railCollapsed);
         syncRailToggle();
       }
 
-      setRailCollapsed(storedRailPreference(), false);
-      railToggle?.addEventListener('click', () => {
-        setRailCollapsed(!shell.classList.contains('rail-collapsed'));
-      });
+      function setRailCollapsed(next, persist = true) {
+        railCollapsed = Boolean(next);
+        if (persist && railQuery.matches) {
+          localStorage.setItem(RAIL_STORAGE_KEY, String(railCollapsed));
+        }
+        applyRail();
+      }
 
       const onDesktopBreakpointChange = () => {
         if (usesPanel()) {
@@ -335,25 +398,243 @@ const isOrders = path === '/my-orders';
         setPanelOpen(false);
         syncOrderControls();
       };
-      const onRailBreakpointChange = () => setRailCollapsed(storedRailPreference(), false);
+      const onRailBreakpointChange = applyRail;
       desktopQuery.addEventListener('change', onDesktopBreakpointChange);
       railQuery.addEventListener('change', onRailBreakpointChange);
-      syncOrderControls();
+
+      // ---- Per-arrival initialisers ----
+      // Every binding that touches a node lives here, guarded by a subsystem-named data-bound flag,
+      // because one node can host two subsystems (#cart-open is an order toggle AND the badge
+      // source) and because a swap can hand any of them back as a brand-new element.
+      function initOverlayState() {
+        // Ruling M: <body> is the node the router replaces, so the modal scroll lock — set at
+        // CartDrawer.astro:64/:72 — does not survive a swap, while the drawer's own .open class
+        // does. Re-assert the lock from the one truth the shell already keeps, and refuse to carry
+        // an open customer drawer into /admin, which today always loads closed.
+        if (drawerOpen && normalizePath(location.pathname) === '/admin') {
+          // Synchronous: the drawer's listener flips drawerOpen before this line returns, so the
+          // assignment below reads settled truth. Not returning also covers the case closeDrawer()
+          // early-returns on (CartDrawer.astro:71) — the lock then stays asserted, matching the
+          // truth the shell keeps, instead of being left to whatever the DOM happened to hold.
+          window.dispatchEvent(new CustomEvent('maghapon:cart-close'));
+        }
+        document.body.style.overflow = drawerOpen ? 'hidden' : '';
+      }
+
+      function initStatusPill() {
+        tickClock();
+      }
+
+      // Ruling E: nav state is derived per arrival instead of baked into each route's markup,
+      // because a persisted node keeps the DOM the first route wrote — so the highlight a swap
+      // leaves behind is whatever that route rendered. Server-rendered class/aria-current stay,
+      // so no-JS still gets a correct highlight; this function has the last word when JS runs.
+      function initChromeNav() {
+        const path = normalizePath(location.pathname);
+        document.querySelectorAll('.rail-nav a[href], .tab-bar a[href]').forEach((link) => {
+          const url = new URL(link.href, location.href);
+          const active = !url.hash && normalizePath(url.pathname) === path;
+          link.classList.toggle('is-active', active);
+          if (active) link.setAttribute('aria-current', 'page');
+          else link.removeAttribute('aria-current');
+        });
+        const actions = document.querySelector('.mobile-topbar-actions');
+        if (actions) actions.hidden = path !== '/admin';
+      }
+
+      function initReveals() {
+        // The observer outlives every document this session shows it, so the arrival boundary is
+        // the only place its target list can be reset: a swap replaces <body>, and without this the
+        // previous page's below-the-fold `[data-reveal]` nodes stay observed forever — up to 42 per
+        // /menu visit — as live references to detached DOM. Re-setting here cannot drop a pending
+        // reveal: every observable node is one the query below re-adds, and no `transition:persist`
+        // chrome node carries `data-reveal` (measured across src/ and dist/), so nothing that
+        // survives a swap is mid-flight. Reveals still fire once: the callback unobserves what it
+        // has already shown, and `revealed` is a class on the node, not observer state.
+        io.disconnect();
+        document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+      }
+
+      function initOrderSurface() {
+        orderToggles = [...document.querySelectorAll('[data-order-toggle]')];
+        orderToggles.forEach((toggle) => {
+          if (toggle.dataset.orderBound) return;
+          toggle.dataset.orderBound = '1';
+          toggle.addEventListener('click', handleOrderToggle);
+        });
+        applyPanel();
+        syncOrderControls();
+      }
+
+      function initRailCollapse() {
+        if (!railToggle) return;
+        if (!railToggle.dataset.railBound) {
+          railToggle.dataset.railBound = '1';
+          railToggle.addEventListener('click', () => setRailCollapsed(!railCollapsed));
+        }
+        applyRail();
+      }
 
       // ---- Mirror the cart badge to the mobile buttons ----
       // CartDrawer updates #cart-count (global controls); keep the mobile badges in sync.
-      const badge = document.getElementById('cart-count');
-      const mirrors = document.querySelectorAll('[data-cart-badge]');
-      if (badge && mirrors.length) {
+      function initBadgeMirror() {
+        const badge = document.getElementById('cart-count');
+        if (!badge) return;
         const sync = () => {
-          mirrors.forEach((m) => {
+          // Re-queried per call, never captured: this observer is installed once (badgeBound) and a
+          // swap can hand back brand-new [data-cart-badge] nodes, so a captured list would keep
+          // writing to detached mirrors and the live badge would go silently stale.
+          document.querySelectorAll('[data-cart-badge]').forEach((m) => {
             m.textContent = badge.textContent;
             m.hidden = badge.hidden;
           });
         };
         sync();
-        new MutationObserver(sync).observe(badge, { attributes: true, childList: true, subtree: true });
+        if (!badge.dataset.badgeBound) {
+          badge.dataset.badgeBound = '1';
+          new MutationObserver(sync).observe(badge, {
+            attributes: true,
+            childList: true,
+            subtree: true,
+          });
+        }
       }
+
+      function initPageScripts() {
+        runHooks();
+        runPage(location.pathname);
+      }
+
+      // The rail's Rewards anchor is the one link in the chrome whose destination is `/` plus a
+      // fragment. With the router on, a browser-native hash jump across pages is a full navigation
+      // (which would drop the app shell), so the click is converted into a swap and the scroll is
+      // handed to the arrival that follows it. `requestScrollTo()` must come *before* `navigate()`,
+      // because arrive() runs during it and consumes whatever is queued. A same-page click returns
+      // early and the browser scrolls on its own. The `isRouterActive` guard is not dead weight for
+      // a future web build: §4's contract item 8 measures a route that fails to render the router
+      // turning the swap into a full document load — this is what keeps the handler honest there.
+      function initHashNav() {
+        document.querySelectorAll('[data-hash-nav]').forEach((link) => {
+          if (link.dataset.hashBound) return;
+          link.dataset.hashBound = '1';
+          link.addEventListener('click', (event) => {
+            if (!isRouterActive(document)) return;
+            const url = new URL(link.href, location.href);
+            if (normalizePath(url.pathname) === normalizePath(location.pathname)) return;
+            event.preventDefault();
+            requestScrollTo(url.hash.slice(1));
+            navigate(url.pathname);
+          });
+        });
+      }
+
+      // F-F6: an arrival is ten independent jobs, and the order among them is a contract while a
+      // failure in one of them is not a reason to cancel the rest. Each step runs isolated and is
+      // reported loudly rather than swallowed — §2.6's distinction. Without this, a throw in any of
+      // steps 1-8 (in a page init, or in an arrival hook owned by CartDrawer or CartPanel) skipped
+      // the scroll hand-off and the hash seam on EVERY later arrival for the whole session.
+      const arrivalFailures = [];
+
+      function reportArrivalStep(name, err) {
+        arrivalFailures.push({ step: name, message: String(err?.message ?? err) });
+        console.error('maghapon: arrival step failed', name, err);
+      }
+
+      function arrive() {
+        runArrivalSteps(
+          [
+            { name: 'initOverlayState', fn: initOverlayState },
+            { name: 'initStatusPill', fn: initStatusPill },
+            { name: 'initChromeNav', fn: initChromeNav },
+            { name: 'initReveals', fn: initReveals },
+            { name: 'initOrderSurface', fn: initOrderSurface },
+            { name: 'initRailCollapse', fn: initRailCollapse },
+            { name: 'initBadgeMirror', fn: initBadgeMirror },
+            { name: 'initPageScripts', fn: initPageScripts },
+            { name: 'consumePendingScroll', fn: consumePendingScroll },
+            { name: 'initHashNav', fn: initHashNav },
+          ],
+          reportArrivalStep
+        );
+      }
+
+      // Probe surface: what a test or a CDP pass reads, not what the shell decides from.
+      window.maghaponShell = {
+        arrive,
+        arrivalFailures,
+        get drawerOpen() {
+          return drawerOpen;
+        },
+        get panelOpen() {
+          return panelOpen;
+        },
+      };
+
+      // ---- Hardware back seam (spec §6.6) ----
+      const backToast = document.createElement('div');
+      backToast.className = 'back-toast';
+      backToast.id = 'back-toast';
+      backToast.setAttribute('role', 'status');
+
+      function notifyBack(message) {
+        // <body> is the node the router replaces, so this node detaches on every swap. Re-append
+        // rather than assume isConnected survived, and clear the old timer before arming a new
+        // one: a stale timer would otherwise strip .show off a toast that has not finished being
+        // read.
+        if (!backToast.isConnected) document.body.append(backToast);
+        backToast.textContent = message;
+        backToast.classList.add('show');
+        clearTimeout(notifyBack.timer);
+        notifyBack.timer = setTimeout(() => backToast.classList.remove('show'), EXIT_WINDOW_MS);
+      }
+
+      const backPress = createBackPress({
+        // The closure's truth, never the probe object: `window.maghaponShell` is a plain
+        // global any later script can replace, and a back decision that lies about an open
+        // overlay swallows the press — the user gets a toast and a panel still on screen.
+        isOverlayOpen: () => drawerOpen || panelOpen,
+        canGoBack: () => history.length > 1,
+        goBack: () => history.back(),
+        exit: () =>
+          notifyBack('Maghapon Café would close here — the native shell does this in Phase 5.'),
+        notify: (kind) => {
+          if (kind === BACK.CLOSE) {
+            // The decision said "close"; only the component that owns the overlay can do it.
+            // Two calls because the two surfaces have two owners: the drawer closes itself on
+            // maghapon:cart-close (CartDrawer.astro); CartPanel registers no such listener, and
+            // its only closer is this shell's own setPanelOpen. Without the second call a
+            // ≥1024px press toasts "closed" while the panel stays open, and every later press
+            // answers "close" again — the back button dead-ends permanently on the desktop.
+            window.dispatchEvent(new CustomEvent('maghapon:cart-close'));
+            // Only when the panel is actually open. Closing an already-closed panel changes no
+            // state, but setPanelOpen's close arm still runs `else if (panelTrigger?.isConnected)
+            // panelTrigger.focus()` — it reads panelTrigger, written only by `if (next && trigger)`
+            // on the open path and never cleared, so the value can be stale from some earlier open
+            // — and that focus lands after the drawer's own restore, overriding it. A desktop user
+            // who opened the panel once and then a config drawer would land on #cart-open, a node
+            // they did not come from.
+            if (panelOpen) setPanelOpen(false);
+            notifyBack('Closed the order menu.');
+            return;
+          }
+          notifyBack('Press back again to exit.');
+        },
+      });
+
+      // An armed exit must not survive a navigation: back, back would otherwise read as EXIT two
+      // seconds after the user already moved. This goes through addArrivalHook rather than a new
+      // init*() in arrive() precisely so the pinned arrival order in tests/arrival-order.test.mjs
+      // stays the single record of shell-owned sequencing, and a page-owned concern rides the same
+      // hook list CartPanel uses. It must run before boot(arrive), so the hook is registered for
+      // the first arrival too.
+      addArrivalHook(() => backPress.reset());
+
+      window.maghaponBack = { press: () => backPress.press(), reset: () => backPress.reset() };
+
+      // Ruling G: read the stored preference once, never on arrival — re-reading it would snap the
+      // rail back to storage every time the user collapses it and then navigates.
+      railCollapsed = storedRailPreference();
+      boot(arrive);
     </script>
   </body>
 </html>

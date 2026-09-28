@@ -98,3 +98,77 @@
     transform: none;
   }
 }
+
+/* ---- Route transition (§6.4): 420ms cross-fade + 8px rise, never a horizontal slide ----
+   Hand-authored because Astro's `animate` directive on <ClientRouter/> emits nothing (Ruling B),
+   and Astro ships no @keyframes on that path. mix-blend-mode is reset on the root pair because the
+   UA paints ::view-transition-old with plus-lighter, which blows out to white on the cream ground.
+   The directive is named in words, not in its `transition:` spelling: Ruling B forbids it in src/
+   and the grep that enforces that reads prose as markup (§7's comment-prose lesson). */
+::view-transition-old(root) {
+  animation: maghapon-page-out 420ms var(--ease-out) both;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  animation: maghapon-page-in 420ms var(--ease-out) both;
+  mix-blend-mode: normal;
+}
+
+/* The six persisted nodes are named here so each becomes its own snapshot group, then carved out
+   of the animation so it holds still while the page moves. Named per-element rather than by a
+   `*` wildcard: a wildcard and the (root) rules above would be in a specificity contest nobody
+   measured, and these six names are already fixed by PERSIST_KEYS. The maghapon-<key> spelling is
+   what check 9 derives from TRANSITION_NAMES, so a seventh persisted node fails the guard. */
+::view-transition-group(maghapon-nav-rail),
+::view-transition-old(maghapon-nav-rail),
+::view-transition-new(maghapon-nav-rail),
+::view-transition-group(maghapon-global-controls),
+::view-transition-old(maghapon-global-controls),
+::view-transition-new(maghapon-global-controls),
+::view-transition-group(maghapon-mobile-topbar),
+::view-transition-old(maghapon-mobile-topbar),
+::view-transition-new(maghapon-mobile-topbar),
+::view-transition-group(maghapon-tab-bar),
+::view-transition-old(maghapon-tab-bar),
+::view-transition-new(maghapon-tab-bar),
+::view-transition-group(maghapon-cart-panel),
+::view-transition-old(maghapon-cart-panel),
+::view-transition-new(maghapon-cart-panel),
+::view-transition-group(maghapon-cart-drawer),
+::view-transition-old(maghapon-cart-drawer),
+::view-transition-new(maghapon-cart-drawer) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+#nav-rail { view-transition-name: maghapon-nav-rail; }
+#global-controls { view-transition-name: maghapon-global-controls; }
+.mobile-topbar { view-transition-name: maghapon-mobile-topbar; }
+.tab-bar { view-transition-name: maghapon-tab-bar; }
+#cart-panel { view-transition-name: maghapon-cart-panel; }
+#cart-drawer { view-transition-name: maghapon-cart-drawer; }
+
+@keyframes maghapon-page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes maghapon-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The six groups above are already `animation: none` unconditionally; only the root pair can
+     still move, so this block stops exactly what is still capable of moving.
+     [data-astro-transition-scope] is deliberately absent: nothing in this project renders an
+     Astro scope attribute, so a rule for it would match no element forever. */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}

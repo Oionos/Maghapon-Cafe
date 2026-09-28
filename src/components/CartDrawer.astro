@@ -2,7 +2,7 @@
 // CartDrawer — slide-over cart: item config, cart list, checkout, confirmation
 // All cart math lives in src/lib/cart.js (pure); persistence in the store seam (src/lib/store/).
 ---
-<div class="drawer" id="cart-drawer" aria-hidden="true">
+<div class="drawer" id="cart-drawer" aria-hidden="true" transition:persist="cart-drawer">
   <div class="drawer-scrim" data-cart-close></div>
   <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Your order">
     <header class="drawer-head">
@@ -15,6 +15,7 @@
 
 
 <script>
+  import { addArrivalHook } from '../lib/nav.js';
   import {
     addItem,
     removeItem,
@@ -31,7 +32,6 @@
   const drawer = document.getElementById('cart-drawer');
   const body = document.getElementById('drawer-body');
   const title = document.getElementById('drawer-title');
-  const badge = document.getElementById('cart-count');
 
   let cart = getCart();
   let config = null; // { item, variant, mods: Set, qty }
@@ -41,11 +41,13 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
   function renderBadge() {
+    // Resolved per call, not captured: #cart-count lives in .global-controls, which /admin does
+    // not render, and a swap can hand back a different node than the one this module saw.
+    const badge = document.getElementById('cart-count');
+    if (!badge) return;
     const n = cartCount(cart);
-    if (badge) {
-      badge.textContent = n;
-      badge.hidden = n === 0;
-    }
+    badge.textContent = n;
+    badge.hidden = n === 0;
   }
   function persist() {
     setCart(cart);
@@ -293,4 +295,7 @@
   // Public API for menu page "Add to cart" buttons
   window.maghaponCart = { openConfig, openCart: () => { renderCart(); openDrawer(); } };
   renderBadge();
+  // This module evaluates once per JS context while the badge node comes and goes with the route,
+  // so the count is re-painted on every arrival — including /admin, where renderBadge() no-ops.
+  addArrivalHook(() => renderBadge());
 </script>

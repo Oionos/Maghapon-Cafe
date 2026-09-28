@@ -73,27 +73,34 @@ const guestOptions = Array.from({ length: 20 }, (_, i) => i + 1);
   </div>
 
   <script>
+    import { registerPage } from '../lib/nav.js';
     import { placeBooking } from '../lib/store/orderStore.js';
 
-    // Earliest bookable date = today in Manila time
-    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
-    document.getElementById('bk-date').min = today;
+    registerPage('/booking', init);
 
-    document.getElementById('booking-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const f = e.target;
-      placeBooking({
-        name: f.name.value.trim(),
-        phone: f.phone.value.trim(),
-        date: f.date.value,
-        time: f.time.value,
-        guests: Number(f.guests.value),
-        eventType: f.type.value,
-      });
-      const msg = document.getElementById('booking-success');
-      msg.textContent = `Booking request received for ${f.date.value} at ${f.time.value} (${f.guests.value} guest${f.guests.value === '1' ? '' : 's'}, ${f.type.value}). We'll confirm within 24 hours.`;
-      msg.classList.add('show');
-      f.reset();
-    });
+    function init({ signal }) {
+      // Earliest bookable date = today in Manila time
+      const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+      }).format(new Date());
+      document.getElementById('bk-date').min = today;
+
+      document.getElementById('booking-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const f = e.target;
+        placeBooking({
+          name: f.name.value.trim(),
+          phone: f.phone.value.trim(),
+          date: f.date.value,
+          time: f.time.value,
+          guests: Number(f.guests.value),
+          eventType: f.type.value,
+        });
+        const msg = document.getElementById('booking-success');
+        msg.textContent = `Booking request received for ${f.date.value} at ${f.time.value} (${f.guests.value} guest${f.guests.value === '1' ? '' : 's'}, ${f.type.value}). We'll confirm within 24 hours.`;
+        msg.classList.add('show');
+        f.reset();
+      }, { signal });
+    }
   </script>
 </Base>

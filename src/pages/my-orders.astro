@@ -20,36 +20,40 @@ import Base from '../layouts/Base.astro';
   <div class="container my-orders-list" id="my-orders-list"></div>
 
   <script>
+    import { registerPage } from '../lib/nav.js';
     import { listOrders } from '../lib/store/orderStore.js';
 
-    function esc(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-    function manilaTime(iso) {
-      return new Date(iso).toLocaleString('en-PH', {
-        timeZone: 'Asia/Manila',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
+    registerPage('/my-orders', init);
 
-    function render() {
-      const orders = listOrders();
-      const list = document.getElementById('my-orders-list');
-      if (orders.length === 0) {
-        list.innerHTML = `
+    function init({ signal }) {
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+      function manilaTime(iso) {
+        return new Date(iso).toLocaleString('en-PH', {
+          timeZone: 'Asia/Manila',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+
+      function render() {
+        const orders = listOrders();
+        const list = document.getElementById('my-orders-list');
+        if (orders.length === 0) {
+          list.innerHTML = `
           <div class="admin-empty">
             <div class="empty-owl" aria-hidden="true"><img src="/images/logo-owl.jpg" alt="" width="96" height="96" /></div>
             <p>No orders yet — your next Maghapon is waiting.</p>
             <a class="btn btn-primary" href="/menu">Browse the menu</a>
           </div>`;
-        return;
-      }
-      list.innerHTML = orders
-        .map(
-          (o) => `
+          return;
+        }
+        list.innerHTML = orders
+          .map(
+            (o) => `
           <article class="order-card">
             <div class="order-head">
               <span class="order-number">${esc(o.id)}</span>
@@ -73,13 +77,14 @@ import Base from '../layouts/Base.astro';
               </span>
             </div>
           </article>`
-        )
-        .join('');
-    }
+          )
+          .join('');
+      }
 
-    render();
-    // Live updates: orders placed in ANOTHER tab of this browser appear here
-    window.addEventListener('storage', render);
-    window.addEventListener('focus', render);
+      render();
+      // Live updates: orders placed in ANOTHER tab of this browser appear here
+      window.addEventListener('storage', render, { signal });
+      window.addEventListener('focus', render, { signal });
+    }
   </script>
 </Base>

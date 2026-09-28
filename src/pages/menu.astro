@@ -79,38 +79,44 @@ const notes = { Classics: CLASSICS_NOTE, Matcha: MATCHA_NOTE };
   </div>
 
   <script>
-    // Add-to-cart buttons open the item config in the cart drawer
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-add]');
-      if (btn && window.maghaponCart) window.maghaponCart.openConfig(btn.dataset.add);
-    });
+    import { registerPage } from '../lib/nav.js';
 
-    // Search filters every card by name/description; empty sections collapse
-    const search = document.getElementById('menu-search');
-    const cards = [...document.querySelectorAll('.menu-card')];
-    const sections = [...document.querySelectorAll('.menu-section')];
-    const extras = document.getElementById('extras');
-    const offMenu = document.querySelector('.off-menu-note');
-    const empty = document.getElementById('menu-empty');
+    registerPage('/menu', init);
 
-    function applyMenuSearch() {
-      const q = search.value.trim().toLowerCase();
-      let visible = 0;
-      cards.forEach((card) => {
-        const match = !q || card.dataset.search.includes(q);
-        card.hidden = !match;
-        if (match) visible++;
-      });
-      sections.forEach((sec) => {
-        if (sec.id === 'extras') return;
-        const anyVisible = [...sec.querySelectorAll('.menu-card')].some((c) => !c.hidden);
-        sec.hidden = !anyVisible;
-      });
-      if (extras) extras.hidden = !!q;
-      if (offMenu) offMenu.hidden = !!q;
-      if (empty) empty.hidden = visible > 0;
+    function init({ signal }) {
+      // Add-to-cart buttons open the item config in the cart drawer
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-add]');
+        if (btn && window.maghaponCart) window.maghaponCart.openConfig(btn.dataset.add);
+      }, { signal });
+
+      // Search filters every card by name/description; empty sections collapse
+      const search = document.getElementById('menu-search');
+      const cards = [...document.querySelectorAll('.menu-card')];
+      const sections = [...document.querySelectorAll('.menu-section')];
+      const extras = document.getElementById('extras');
+      const offMenu = document.querySelector('.off-menu-note');
+      const empty = document.getElementById('menu-empty');
+
+      function applyMenuSearch() {
+        const q = search.value.trim().toLowerCase();
+        let visible = 0;
+        cards.forEach((card) => {
+          const match = !q || card.dataset.search.includes(q);
+          card.hidden = !match;
+          if (match) visible++;
+        });
+        sections.forEach((sec) => {
+          if (sec.id === 'extras') return;
+          const anyVisible = [...sec.querySelectorAll('.menu-card')].some((c) => !c.hidden);
+          sec.hidden = !anyVisible;
+        });
+        if (extras) extras.hidden = !!q;
+        if (offMenu) offMenu.hidden = !!q;
+        if (empty) empty.hidden = visible > 0;
+      }
+
+      search.addEventListener('input', applyMenuSearch, { signal });
     }
-
-    search.addEventListener('input', applyMenuSearch);
   </script>
 </Base>
