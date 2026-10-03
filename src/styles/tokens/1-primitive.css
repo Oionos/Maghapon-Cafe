@@ -2,8 +2,9 @@
 /* ---- Tier 1 — primitives: brand colour, type, and the §4.3 scale steps 2A reads ----
    Named by parent spec §4.2's renames. No component reads a primitive for its meaning in
    an app surface; that is tier 2's job (2-semantic.css) and it arrives in 2B's migration.
-   Declared here because a token with no consumer is a dead declaration -- the label-named
-   `undefined token` check (it arrives in Task 9) has nothing on its read side to justify one. */
+   Declared here because a token with no consumer is a dead declaration. The label-named
+   `undefined token` check is live and does read this file -- but it reports only `var()` uses with
+   no definition, so an unread declaration here can never trip it. */
 :root {
   /* Brand colour (§4.2 renames at their existing hexes, plus the two new steps). */
   --rust-600: #bb3d03;
