@@ -27,9 +27,12 @@ export const WEB_ROUTES = [
 
 // The @import list in src/styles/global.css IS the cascade: slices are contiguous ranges of the
 // pre-split file, so an import that is missing, added, or reordered changes rendering with no
-// compile error. Order is compared, not just membership, because the 15 slices are interchangeable
-// to a set comparison and not at all interchangeable to the browser.
+// compile error. Order is compared, not just membership, because the 18 imported files are
+// interchangeable to a set comparison and not at all to the browser.
 export const CSS_IMPORT_ORDER = [
+  'src/styles/tokens/1-primitive.css',
+  'src/styles/tokens/2-semantic.css',
+  'src/styles/tokens/3-transitional.css',
   'src/styles/tokens/legacy-root.css',
   'src/styles/base.css',
   'src/styles/button.css',

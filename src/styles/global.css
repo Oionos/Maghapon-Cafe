@@ -4,6 +4,9 @@
    of the pre-split file, so reordering them changes rendering.
    ============================================================ */
 
+@import url("./tokens/1-primitive.css");
+@import url("./tokens/2-semantic.css");
+@import url("./tokens/3-transitional.css");
 @import url("./tokens/legacy-root.css");
 @import url("./base.css");
 @import url("./button.css");
