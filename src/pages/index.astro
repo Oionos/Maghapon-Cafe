@@ -41,12 +41,12 @@ const featuredImages = {
   'blueberry-soda': menuClassic,
 };
 ---
-<Base>
+<Base surface="editorial">
   <!-- Cinematic full-bleed hero -->
   <Hero />
 
   <!-- Ordering surface -->
-  <section class="order-surface">
+  <section class="order-surface" data-surface="app">
     <div class="container">
       <h2 class="order-greeting"><span id="greeting">Good day</span>, what are you craving?</h2>
       <p class="order-sub">Order ahead for pickup — we'll have it ready when you arrive.</p>
@@ -140,7 +140,7 @@ const featuredImages = {
   <Testimonials />
 
   <!-- Booking CTA (the full booking form lives on /booking) -->
-  <section class="section section-tint" id="booking">
+  <section class="section section-tint" id="booking" data-surface="app">
     <div class="container">
       <div class="booking-cta" data-reveal>
         <div>
@@ -159,7 +159,7 @@ const featuredImages = {
   <!-- Loyalty teaser -->
   <section class="section" id="rewards">
     <div class="container">
-      <div class="loyalty-band" data-reveal>
+      <div class="loyalty-band" data-reveal data-surface="editorial" data-tone="fill">
         <div>
           <span class="eyebrow eyebrow-light">Coming soon</span>
           <h2>Maghapon Rewards</h2>
