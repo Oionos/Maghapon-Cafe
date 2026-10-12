@@ -225,7 +225,7 @@
   transition-duration: 160ms;
 }
 .menu-card-compact .add-btn:focus-visible {
-  outline: 2px solid var(--rust-amber);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

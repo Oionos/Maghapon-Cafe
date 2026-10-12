@@ -217,7 +217,7 @@
   outline: none;
 }
 .opt-pill:has(input:focus-visible) {
-  outline: 3px solid var(--rust-amber);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .qty-row {

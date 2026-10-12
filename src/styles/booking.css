@@ -49,7 +49,7 @@
 }
 .field input:focus,
 .field select:focus {
-  outline: 3px solid var(--rust-amber);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
   border-color: var(--rust);
   box-shadow: 0 0 0 4px rgba(214, 135, 62, 0.12);

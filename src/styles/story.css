@@ -54,7 +54,7 @@
   opacity: 0.55;
 }
 .search-input:focus {
-  outline: 3px solid var(--rust-amber);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
   border-color: var(--rust);
 }
