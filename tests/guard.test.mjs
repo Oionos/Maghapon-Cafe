@@ -246,15 +246,15 @@ test('drift is reported in both directions by hex value', () => {
   // colour: the two assertions below only stay green because the compare case-folds. A
   // case-sensitive compare would report #d3cbbd in *both* directions and break both lines.
   const md = '---\ncolors:\n  a: "#bb3d03"\n  b: "#e0e0e0"\n  c: "#d3cbbd"\n---\n';
-  const css = [{ path: 'src/styles/tokens/legacy-root.css',
+  const css = [{ path: 'src/styles/tokens/1-primitive.css',
     text: ':root{--rust:#bb3d03;--cream:#f4efe6;--cream-deep:#D3CBBD}' }];
   const drift = findTokenDrift(md, css);
   assert.deepEqual(drift.map((d) => d.onlyInDoc).filter(Boolean), ['#e0e0e0']);
   assert.deepEqual(drift.map((d) => d.onlyInCode).filter(Boolean), ['#f4efe6']);
 });
 
-// The reconciliation tripwire, on the real files rather than a fixture: tokens/legacy-root.css
-// is Phase 0's single source of truth, and Phase 2's rename must keep this green across it.
+// The reconciliation tripwire, on the real files rather than a fixture: tokens/1-primitive.css
+// is the code side of `token drift` since Task 8 retargeted the check, and it must stay green.
 // `md` here is the *path*, not the text: the skip gate below and the read inside the test must
 // agree on one location. DESIGN.md is gitignored, so a fresh clone has nothing to reconcile
 // against — name that as a skip rather than let it read as a pass or a failure. The fixture test
@@ -264,7 +264,7 @@ test('phase-0 reconciliation leaves zero color drift',
   { skip: existsSync(md) ? false : 'DESIGN.md is gitignored — colour tripwire inactive' },
   () => {
     const dir = fileURLToPath(new URL('../src/styles/tokens/', import.meta.url));
-    const css = ['legacy-root.css'].map((f) => ({
+    const css = ['1-primitive.css'].map((f) => ({
       path: 'src/styles/tokens/' + f,
       text: readFileSync(dir + f, 'utf8'),
     }));

@@ -27,13 +27,12 @@ export const WEB_ROUTES = [
 
 // The @import list in src/styles/global.css IS the cascade: slices are contiguous ranges of the
 // pre-split file, so an import that is missing, added, or reordered changes rendering with no
-// compile error. Order is compared, not just membership, because the 18 imported files are
+// compile error. Order is compared, not just membership, because the 17 imported files are
 // interchangeable to a set comparison and not at all to the browser.
 export const CSS_IMPORT_ORDER = [
   'src/styles/tokens/1-primitive.css',
   'src/styles/tokens/2-semantic.css',
   'src/styles/tokens/3-transitional.css',
-  'src/styles/tokens/legacy-root.css',
   'src/styles/base.css',
   'src/styles/button.css',
   'src/styles/shell.css',
@@ -653,11 +652,11 @@ function main() {
         // would read as "every doc hex is doc-only drift", or as a clean pass if the doc were
         // empty too. Crash on it instead of going green.
         const tokenCss = cssFiles.filter(
-          (f) => f.path === 'src/styles/tokens/legacy-root.css'
+          (f) => f.path === 'src/styles/tokens/1-primitive.css'
         );
         if (tokenCss.length === 0) {
           throw new Error(
-            'token drift: src/styles/tokens/legacy-root.css missing from src/styles/ — ' +
+            'token drift: src/styles/tokens/1-primitive.css missing from src/styles/ — ' +
             'the drift check has no code side to compare and cannot report honestly'
           );
         }
