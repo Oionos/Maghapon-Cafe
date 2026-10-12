@@ -42,7 +42,7 @@
   width: 100%;
   min-height: 46px;
   padding: 0.55rem 0.9rem 0.55rem 46px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   border: 1px solid var(--line);
   background: #fff;
   color: var(--ink-900);
@@ -82,7 +82,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease);
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
 }
 .chip:hover {
   background: rgba(187, 61, 3, 0.08);
@@ -139,7 +139,7 @@
   margin: 1.5rem 0 2rem;
   padding: 2rem;
   border: 1px dashed var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--tmp-radius-container);
   background: var(--cream-0);
   text-align: center;
   opacity: 0.85;
@@ -227,8 +227,8 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border-radius: var(--tmp-radius-container);
+  box-shadow: var(--tmp-shadow-card);
 }
 .story-copy p {
   font-size: 1.05rem;
@@ -263,15 +263,15 @@
 .info-card {
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--tmp-radius-container);
   padding: 1.6rem;
-  transition: transform 0.7s var(--ease), box-shadow 0.7s var(--ease), border-color 0.7s var(--ease);
+  transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
   will-change: transform;
 }
 .info-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lift);
-  border-color: var(--line-strong);
+  box-shadow: var(--elev-float);
+  border-color: var(--tmp-line-strong);
 }
 .info-card h3 {
   font-size: 1rem;

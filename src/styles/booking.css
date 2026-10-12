@@ -10,13 +10,13 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border-radius: var(--tmp-radius-container);
+  box-shadow: var(--tmp-shadow-card);
 }
 .form-card {
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--tmp-radius-container);
   padding: 1.5rem;
   margin-top: 1.4rem;
 }
@@ -39,13 +39,13 @@
 .field select {
   min-height: 46px;
   padding: 0.55rem 0.8rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   border: 1px solid var(--line);
   background: #fff;
   color: var(--ink-900);
   font-family: var(--font-ui);
   font-size: 0.95rem;
-  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
 }
 .field input:focus,
 .field select:focus {
@@ -83,7 +83,7 @@
   display: none;
   margin-top: 1rem;
   padding: 0.9rem 1rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   background: rgba(128, 160, 64, 0.18);
   border: 1px solid var(--matcha-600);
   color: var(--ink-900);
@@ -101,7 +101,7 @@
   gap: 1.6rem;
   align-items: center;
   background: linear-gradient(120deg, var(--ink-900) 0%, var(--rust-600) 100%);
-  border-radius: var(--radius);
+  border-radius: var(--tmp-radius-container);
   padding: clamp(1.8rem, 5vw, 3rem);
   color: var(--cream-0);
 }
@@ -121,7 +121,7 @@
   flex: 1 1 200px;
   min-height: 46px;
   padding: 0.55rem 0.9rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   border: 1px solid rgba(244, 239, 230, 0.4);
   background: rgba(244, 239, 230, 0.12);
   color: var(--cream-0);

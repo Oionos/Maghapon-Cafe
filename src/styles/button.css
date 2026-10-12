@@ -13,7 +13,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.7s var(--ease), box-shadow 0.7s var(--ease), background 0.7s var(--ease), color 0.7s var(--ease), border-color 0.7s var(--ease);
+  transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), background 0.7s var(--ease-out), color 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
   text-decoration: none;
   will-change: transform;
 }
@@ -28,7 +28,7 @@
 .btn-primary:hover {
   background: var(--ink-900);
   border-color: var(--ink-900);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--elev-float);
 }
 .btn-outline {
   border-color: var(--line-light);
@@ -63,7 +63,7 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   flex: 0 0 28px;
-  transition: transform 0.7s var(--ease);
+  transition: transform 0.7s var(--ease-out);
 }
 .btn:hover .btn-icon {
   transform: translateX(2px) translateY(-1px) scale(1.05);

@@ -16,7 +16,7 @@
   inset: 0;
   background: rgba(42, 18, 6, 0.55);
   opacity: 0;
-  transition: opacity 0.3s var(--ease);
+  transition: opacity 0.3s var(--ease-out);
 }
 .drawer.open .drawer-scrim {
   opacity: 1;
@@ -31,7 +31,7 @@
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform 0.35s var(--ease);
+  transition: transform 0.35s var(--ease-out);
   box-shadow: -20px 0 50px rgba(42, 18, 6, 0.3);
 }
 .drawer.open .drawer-panel {
@@ -109,7 +109,7 @@
 .config-avatar {
   flex: 0 0 56px;
   height: 56px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   background: linear-gradient(135deg, var(--rust-600), var(--rust-400));
   color: var(--cream-0);
   font-family: var(--font-display);
@@ -129,7 +129,7 @@
 }
 .opt-group {
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   padding: 0.9rem 1rem;
   margin: 0;
 }
@@ -151,7 +151,7 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0.6rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   cursor: pointer;
   font-size: 0.92rem;
 }
@@ -189,7 +189,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s var(--ease), color 0.2s, border-color 0.2s, transform 0.2s var(--ease);
+  transition: background 0.2s var(--ease-out), color 0.2s, border-color 0.2s, transform 0.2s var(--ease-out);
 }
 .opt-pill:hover {
   background: rgba(187, 61, 3, 0.08);
@@ -316,7 +316,7 @@
 /* checkout */
 .checkout-summary {
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   padding: 1rem;
   display: flex;
   flex-direction: column;

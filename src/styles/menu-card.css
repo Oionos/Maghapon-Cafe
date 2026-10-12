@@ -5,15 +5,15 @@
   flex-direction: column;
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--tmp-radius-container);
   overflow: hidden;
-  transition: transform 0.7s var(--ease), box-shadow 0.7s var(--ease), border-color 0.7s var(--ease);
+  transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
   will-change: transform;
 }
 .menu-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lift);
-  border-color: var(--line-strong);
+  box-shadow: var(--elev-float);
+  border-color: var(--tmp-line-strong);
 }
 .menu-card-media {
   position: relative;
@@ -125,7 +125,7 @@
 
 /* ---- Compact menu card (landing ordering grid) ---- */
 .menu-card-compact {
-  border-radius: var(--radius);
+  border-radius: var(--tmp-radius-container);
   box-shadow: 0 3px 12px rgba(64, 0, 0, 0.07);
   border: 1px solid var(--line);
   background: var(--cream-0);
@@ -135,7 +135,7 @@
 }
 .menu-card-compact .menu-card-media {
   aspect-ratio: 1 / 1;
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: var(--tmp-radius-container) var(--tmp-radius-container) 0 0;
   overflow: hidden;
   background: linear-gradient(135deg, var(--rust-600) 0%, var(--rust-400) 100%);
 }
@@ -144,7 +144,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transition: transform 0.4s var(--ease);
+  transition: transform 0.4s var(--ease-out);
 }
 /* Warm grounding ellipse — a soft "coaster" under the drink so the photo reads airy, not floating */
 .menu-card-compact .menu-card-media::after {
@@ -210,7 +210,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s var(--ease), background 0.2s, box-shadow 0.2s var(--ease);
+  transition: transform 0.2s var(--ease-out), background 0.2s, box-shadow 0.2s var(--ease-out);
 }
 .menu-card-compact .add-btn svg {
   display: block;
@@ -235,7 +235,7 @@
   position: sticky;
   top: var(--header-h);
   z-index: 40;
-  background: rgba(224, 224, 224, 0.95);
+  background: rgba(var(--tmp-chrome-glass-rgb), 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
   padding: 0.6rem 0;
@@ -261,7 +261,7 @@
   color: var(--ink-700);
   font-size: 0.85rem;
   font-weight: 600;
-  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease);
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
 }
 .tab-btn:hover {
   background: var(--rust-600);

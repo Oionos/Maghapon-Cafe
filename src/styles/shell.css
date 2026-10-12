@@ -125,7 +125,7 @@
   flex: 0 0 22px;
   width: 22px;
   height: 22px;
-  transition: transform 0.25s var(--ease);
+  transition: transform 0.25s var(--ease-out);
 }
 .rail-collapsed .rail-toggle-icon {
   transform: rotate(180deg);
@@ -167,11 +167,11 @@
   background: var(--cream-0);
   cursor: pointer;
   font-size: 1.1rem;
-  transition: transform 0.2s var(--ease), background 0.2s;
+  transition: transform 0.2s var(--ease-out), background 0.2s;
 }
 .cart-btn:hover {
   background: var(--cream-50);
-  box-shadow: var(--shadow);
+  box-shadow: var(--tmp-shadow-card);
 }
 .cart-count {
   position: absolute;
@@ -204,7 +204,7 @@
   gap: 0.7rem;
   min-height: var(--header-h);
   padding: 0 clamp(1rem, 4vw, 2rem);
-  background: rgba(224, 224, 224, 0.92);
+  background: rgba(var(--tmp-chrome-glass-rgb), 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -223,7 +223,7 @@
   gap: 0.6rem;
 }
 .global-controls .status-pill {
-  box-shadow: var(--shadow);
+  box-shadow: var(--tmp-shadow-card);
 }
 .global-controls .cart-btn {
   box-shadow: 0 4px 14px rgba(64, 0, 0, 0.14);
@@ -240,7 +240,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0 1rem;
-  background: rgba(224, 224, 224, 0.92);
+  background: rgba(var(--tmp-chrome-glass-rgb), 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -324,7 +324,7 @@
   font-size: 0.85rem;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
   z-index: 70;
 }
 .back-toast.show {
