@@ -108,7 +108,7 @@
   top: 0;
   height: 100vh;
   flex-direction: column;
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border-left: 1px solid var(--line);
   box-shadow: -12px 0 32px rgba(64, 0, 0, 0.08); /* warm, ambient — a column, not an overlay layer */
 }
@@ -133,15 +133,15 @@
   height: 44px;
   border: 1px solid var(--line);
   border-radius: 50%;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--cream-50);
+  color: var(--ink-700);
   font-size: 1.3rem;
   line-height: 1;
   cursor: pointer;
   transition: transform 160ms var(--ease-out);
 }
 .cart-panel-close:hover {
-  background: var(--cream-deep);
+  background: var(--cream-200);
 }
 .cart-panel-body {
   flex: 1;
@@ -272,7 +272,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.2rem 2rem;
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: clamp(1.5rem, 4vw, 2.2rem);
@@ -309,20 +309,20 @@
   letter-spacing: 0.04em;
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
-  background: var(--rust);
-  color: var(--cream-bright);
+  background: var(--rust-600);
+  color: var(--cream-0);
 }
 .my-status.done {
   background: rgba(107, 143, 46, 0.14);
-  border: 1px solid var(--matcha);
-  color: var(--matcha);
+  border: 1px solid var(--matcha-600);
+  color: var(--matcha-600);
 }
 
 /* ============================================================
    Redesign upgrades — skeleton, spotlight, squircle, legal
    ============================================================ */
 .skeleton {
-  background: linear-gradient(90deg, var(--cream) 25%, var(--cream-bright) 50%, var(--cream) 75%);
+  background: linear-gradient(90deg, var(--cream-50) 25%, var(--cream-0) 50%, var(--cream-50) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: var(--radius-sm);

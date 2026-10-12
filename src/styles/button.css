@@ -9,7 +9,7 @@
   padding: 0.65rem 1.4rem;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -21,18 +21,18 @@
   text-decoration: none;
 }
 .btn-primary {
-  background: var(--rust);
-  color: var(--cream-bright);
-  border-color: var(--rust);
+  background: var(--rust-600);
+  color: var(--cream-0);
+  border-color: var(--rust-600);
 }
 .btn-primary:hover {
-  background: var(--ink-deep);
-  border-color: var(--ink-deep);
+  background: var(--ink-900);
+  border-color: var(--ink-900);
   box-shadow: var(--shadow-lift);
 }
 .btn-outline {
   border-color: var(--line-light);
-  color: var(--cream-bright);
+  color: var(--cream-0);
   background: transparent;
 }
 .btn-outline:hover {
@@ -40,7 +40,7 @@
   border-color: rgba(253, 251, 247, 0.28);
 }
 .btn-ghost {
-  color: var(--rust);
+  color: var(--rust-600);
   background: transparent;
   border-color: transparent;
 }

@@ -14,7 +14,7 @@
   box-shadow: var(--shadow);
 }
 .form-card {
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 1.5rem;
@@ -33,7 +33,7 @@
 .field label {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--ink-700);
 }
 .field input,
 .field select {
@@ -42,8 +42,8 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: #fff;
-  color: var(--ink-deep);
-  font-family: var(--font-body);
+  color: var(--ink-900);
+  font-family: var(--font-ui);
   font-size: 0.95rem;
   transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
@@ -51,7 +51,7 @@
 .field select:focus {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
-  border-color: var(--rust);
+  border-color: var(--rust-600);
   box-shadow: 0 0 0 4px rgba(214, 135, 62, 0.12);
 }
 .field input[aria-invalid="true"],
@@ -85,8 +85,8 @@
   padding: 0.9rem 1rem;
   border-radius: var(--radius-sm);
   background: rgba(128, 160, 64, 0.18);
-  border: 1px solid var(--matcha);
-  color: var(--ink-deep);
+  border: 1px solid var(--matcha-600);
+  color: var(--ink-900);
   font-size: 0.92rem;
   font-weight: 500;
 }
@@ -100,13 +100,13 @@
   grid-template-columns: 1fr;
   gap: 1.6rem;
   align-items: center;
-  background: linear-gradient(120deg, var(--ink-deep) 0%, var(--rust) 100%);
+  background: linear-gradient(120deg, var(--ink-900) 0%, var(--rust-600) 100%);
   border-radius: var(--radius);
   padding: clamp(1.8rem, 5vw, 3rem);
-  color: var(--cream-bright);
+  color: var(--cream-0);
 }
 .loyalty-band h2 {
-  color: var(--cream-bright);
+  color: var(--cream-0);
 }
 .loyalty-band p {
   opacity: 0.9;
@@ -124,8 +124,8 @@
   border-radius: var(--radius-sm);
   border: 1px solid rgba(244, 239, 230, 0.4);
   background: rgba(244, 239, 230, 0.12);
-  color: var(--cream-bright);
-  font-family: var(--font-body);
+  color: var(--cream-0);
+  font-family: var(--font-ui);
   font-size: 0.95rem;
 }
 .loyalty-form input::placeholder {
@@ -134,6 +134,6 @@
 .loyalty-form .form-success {
   flex-basis: 100%;
   background: rgba(128, 160, 64, 0.25);
-  border-color: var(--matcha);
-  color: var(--cream-bright);
+  border-color: var(--matcha-600);
+  color: var(--cream-0);
 }

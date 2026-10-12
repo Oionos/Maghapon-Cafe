@@ -1,8 +1,8 @@
 /* file: admin.css */
 /* ---- Admin ---- */
 .admin-banner {
-  background: var(--rust);
-  color: var(--cream-bright);
+  background: var(--rust-600);
+  color: var(--cream-0);
   text-align: center;
   font-size: 0.85rem;
   font-weight: 600;
@@ -27,7 +27,7 @@
   gap: 0.6rem;
 }
 .admin-stat {
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 0.5rem 1rem;
@@ -38,7 +38,7 @@
   display: block;
   font-family: var(--font-display);
   font-size: 1.3rem;
-  color: var(--rust);
+  color: var(--rust-600);
 }
 .admin-stat span {
   font-size: 0.75rem;
@@ -48,7 +48,7 @@
   opacity: 0.75;
 }
 .order-card {
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 1.3rem 1.4rem;
@@ -64,7 +64,7 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.15rem;
-  color: var(--ink-deep);
+  color: var(--ink-900);
 }
 .order-time {
   font-size: 0.8rem;
@@ -101,7 +101,7 @@
 .order-total b {
   font-family: var(--font-display);
   font-size: 1.2rem;
-  color: var(--rust);
+  color: var(--rust-600);
 }
 .pipeline {
   display: flex;
@@ -117,23 +117,23 @@
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--cream-50);
+  color: var(--ink-700);
   opacity: 0.6;
 }
 .pipe-step.active {
-  background: var(--rust);
-  border-color: var(--rust);
-  color: var(--cream-bright);
+  background: var(--rust-600);
+  border-color: var(--rust-600);
+  color: var(--cream-0);
   opacity: 1;
 }
 .pipe-done {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--matcha);
+  color: var(--matcha-600);
 }
 .admin-empty {
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px dashed var(--line);
   border-radius: var(--radius);
   padding: 2rem;
@@ -148,7 +148,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.6rem 1.4rem;
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 0.9rem 1.1rem;

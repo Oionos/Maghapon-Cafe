@@ -38,20 +38,20 @@
   display: inline-flex;
   align-items: baseline;
   gap: 0.6rem;
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
 }
 .extra-chip b {
-  color: var(--rust);
+  color: var(--rust-600);
 }
 .off-menu-note {
   margin: 3rem 0 4rem;
   padding: 1.6rem 1.8rem;
   border-radius: var(--radius);
-  background: var(--matcha);
+  background: var(--matcha-600);
   color: #f6f8ef;
 }
 .off-menu-note .eyebrow {

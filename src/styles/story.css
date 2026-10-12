@@ -17,7 +17,7 @@
   margin-bottom: 0.3em;
 }
 .order-sub {
-  color: var(--ink);
+  color: var(--ink-700);
   opacity: 0.85;
   max-width: 40em;
   margin-bottom: 1.2rem;
@@ -34,7 +34,7 @@
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
-  color: var(--ink);
+  color: var(--ink-700);
   opacity: 0.55;
   pointer-events: none;
 }
@@ -45,18 +45,18 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: #fff;
-  color: var(--ink-deep);
-  font-family: var(--font-body);
+  color: var(--ink-900);
+  font-family: var(--font-ui);
   font-size: 0.95rem;
 }
 .search-input::placeholder {
-  color: var(--ink);
+  color: var(--ink-700);
   opacity: 0.55;
 }
 .search-input:focus {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
-  border-color: var(--rust);
+  border-color: var(--rust-600);
 }
 .chip-row {
   display: flex;
@@ -76,9 +76,9 @@
   padding: 0.5rem 1.1rem;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: var(--cream-bright);
-  color: var(--ink);
-  font-family: var(--font-body);
+  background: var(--cream-0);
+  color: var(--ink-700);
+  font-family: var(--font-ui);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -88,9 +88,9 @@
   background: rgba(187, 61, 3, 0.08);
 }
 .chip.is-active {
-  background: var(--cream-deep);
-  color: var(--ink-deep);
-  border-color: var(--cream-deep);
+  background: var(--cream-200);
+  color: var(--ink-900);
+  border-color: var(--cream-200);
 }
 .featured-head {
   display: flex;
@@ -107,7 +107,7 @@
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: var(--ink);
+  color: var(--ink-700);
   opacity: 0.75;
   white-space: nowrap;
 }
@@ -140,7 +140,7 @@
   padding: 2rem;
   border: 1px dashed var(--line);
   border-radius: var(--radius);
-  background: var(--cream-bright);
+  background: var(--cream-0);
   text-align: center;
   opacity: 0.85;
 }
@@ -155,7 +155,7 @@
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--rust);
+  color: var(--rust-600);
   margin-bottom: 0.8rem;
 }
 .eyebrow-pill {
@@ -166,28 +166,28 @@
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-deep);
-  background: var(--cream-bright);
+  color: var(--ink-900);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0.35rem 0.75rem;
 }
 .eyebrow-light {
-  color: var(--rust-amber);
+  color: var(--rust-400);
 }
 .eyebrow-italic {
   font-size: 0.85rem;
   font-style: italic;
   letter-spacing: 0;
   text-transform: none;
-  color: var(--ink);
+  color: var(--ink-700);
   opacity: 0.7;
 }
 .section {
   padding: clamp(4rem, 8vw, 7rem) 0;
 }
 .section-tint {
-  background: var(--cream-deep);
+  background: var(--cream-200);
   position: relative;
 }
 .section-tint::before {
@@ -208,7 +208,7 @@
   text-align: center;
 }
 .section-head p {
-  color: var(--ink);
+  color: var(--ink-700);
   opacity: 0.85;
 }
 .center-cta {
@@ -243,7 +243,7 @@
   display: block;
   font-family: var(--font-display);
   font-size: 1.15rem;
-  color: var(--ink-deep);
+  color: var(--ink-900);
 }
 .fact span {
   font-size: 0.85rem;
@@ -261,7 +261,7 @@
   gap: 1.4rem;
 }
 .info-card {
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 1.6rem;
@@ -282,7 +282,7 @@
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--rust);
+  color: var(--rust-600);
   margin: 0.2rem 0 0.5rem;
   font-variant-numeric: tabular-nums;
 }
