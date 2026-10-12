@@ -271,8 +271,8 @@
   gap: 0.5rem;
 }
 .cart-line-qty button {
-  min-width: 34px;
-  min-height: 34px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--cream-50);
