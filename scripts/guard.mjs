@@ -67,6 +67,17 @@ function toFiles(absolutePaths) {
   }));
 }
 
+// The four Task 9 checks read either the walked CSS corpus or the built documents, and the two
+// scope predicates need one file's TEXT out of that corpus. A renamed or deleted tier file must
+// crash the run, exactly as `token drift`'s empty code set does: an empty string would satisfy
+// "no [data-surface] block" as a *missing* input rather than a design fact, and the operator would
+// read a design finding from a plumbing failure.
+function readSrc(cssFiles, path) {
+  const hit = cssFiles.find((f) => f.path === path);
+  if (!hit) throw new Error(`guard: ${path} is not in the walked CSS set`);
+  return hit.text;
+}
+
 function eachLine(files, test) {
   const hits = [];
   for (const file of files) {
@@ -91,9 +102,10 @@ function lineOf(text, index) {
   return text.slice(0, index).split('\n').length;
 }
 
-// Dead-token note: `--font-mono: 'Geist Mono', …` was deleted from tokens/legacy-root.css in
-// Task 5. Nothing in src/ ever referenced it, and its family came only from the Google Fonts
-// <link> the same task removed, so re-adding it would put a second untruth in the token file.
+// Dead-token note: `--font-mono: 'Geist Mono', …` was deleted in Task 5, when the Google Fonts
+// <link> supply went away. Nothing in src/ ever referenced it, and that <link> was its only
+// source, so re-adding it would put a second untruth in the token files. (Task 8 deleted the
+// legacy token file this note used to name as a live path.)
 // Do not restore it without also self-hosting a mono face and proving a consumer exists.
 export function findUndefinedTokens(cssFiles) {
   const defined = new Set();
@@ -472,6 +484,313 @@ export function findTransitionCss(input) {
   return problems;
 }
 
+// Phase 2A §3.3: the deleted aliases are NOT re-exported under their old names. That decision is
+// what turns `undefined token` into the completeness proof for all 263 rename sites — a kept
+// `--radius: var(--tmp-radius-container)` would let a missed site resolve quietly and the check
+// would print OK for it. This predicate is the other half: it refuses the back-compat alias
+// creeping back in, as either a definition or a read, because either form restores the silence.
+// Input completeness, measured 2026-10-13 at this BASE: `cssFiles` is `walk(src/styles)`, so a
+// `var()` read in an inline `<style>` or a component script would be invisible here (and to
+// `scope coverage`), and there is nowhere for one to hide today —
+//   grep -rlE "var\(--" src/ --include=*.astro --include=*.js | wc -l  -> 0
+//   grep -rl "<style" src/ --include=*.astro | wc -l                   -> 0
+// A future inline `<style>` breaks that silently; re-run both before trusting a green run.
+export const DELETED_ALIASES = [
+  'radius',
+  'radius-sm',
+  'radius-xs',
+  'shadow',
+  'shadow-lift',
+  'shadow-soft',
+  'line-strong',
+  'ease',
+];
+
+// The transitional layer's measured shape (spec §3.4). The cap is a CAP, not an equality: the
+// layer may only shrink, and 2B deletes this file, at which point 0 is the number that passes.
+export const TMP_SITES = [
+  ['--tmp-radius-container', 20],
+  ['--tmp-shadow-card', 5],
+  ['--tmp-line-strong', 3],
+  ['--tmp-chrome-glass-rgb', 3],
+];
+export const TMP_READ_CAP = TMP_SITES.reduce((n, [, count]) => n + count, 0);
+
+export function findAliasAbsence(cssFiles) {
+  const failures = [];
+  const tmpReads = new Map();
+  let total = 0;
+  for (const file of cssFiles) {
+    // A commented-out alias is not an alias (see `transition css` for why comments are stripped).
+    const text = stripComments(file.text);
+    for (const alias of DELETED_ALIASES) {
+      // `(?![\w-])`, never `\b`: `--radius` must not match the head of `--radius-sm`, and a word
+      // boundary after a closing paren is a different shape again in the read form below.
+      const re = new RegExp(
+        `(--${alias}(?![\\w-])\\s*:|var\\(\\s*--${alias}(?![\\w-])\\s*\\))`,
+        'g'
+      );
+      for (const m of text.matchAll(re)) {
+        failures.push({
+          path: file.path,
+          line: lineOf(file.text, m.index),
+          text: `deleted alias --${alias} reappears: ${m[0]} — §3.3 deletes these names`,
+        });
+      }
+    }
+    for (const m of text.matchAll(/var\(\s*(--tmp-[\w-]+)\s*\)/g)) {
+      total += 1;
+      tmpReads.set(m[1], (tmpReads.get(m[1]) ?? 0) + 1);
+      const row = TMP_SITES.find(([name]) => name === m[1]);
+      if (!row) {
+        failures.push({
+          path: file.path,
+          line: lineOf(file.text, m.index),
+          text: `unknown ${m[1]} — not in TMP_SITES; a new transitional token is a spec change`,
+        });
+      }
+    }
+  }
+  // Reported once, against the layer rather than a line, because the defect is the aggregate.
+  // `line: 0` for the same reason the two scope checks use it: `stripComments` rewrites offsets,
+  // so a number computed from the stripped text would point at the wrong line of the real file.
+  if (total > TMP_READ_CAP) {
+    failures.push({
+      path: 'src/styles/',
+      line: 0,
+      text:
+        `${total} --tmp-* reads exceeds the cap of ${TMP_READ_CAP} — the transitional ` +
+        'layer may only shrink; a new transitional consumer belongs in 2B',
+    });
+  }
+  return failures;
+}
+
+// The two `[data-surface="…"]` blocks, as a surface -> body map. The `]` before the `{` is what
+// keeps the compound tone selector (`[data-surface="editorial"][data-tone="dark"]`) out of this
+// match: that selector has another `]` in the way, and it is a tone refinement, not a scope block.
+// Feeding it in would make `scope parity` refuse a correct file — Ruling S's landmine — by
+// counting two declarations as a third editorial block.
+function scopeBlocks(text) {
+  const out = new Map();
+  for (const m of text.matchAll(/\[data-surface="([a-z]+)"\]\s*\{/g)) {
+    out.set(m[1], balancedBody(text, m.index + m[0].length - 1));
+  }
+  return out;
+}
+
+// §4.5 item 3 verbatim: every tier-2 token *read* somewhere must be declared in both blocks. A
+// read of a key neither block sets resolves to nothing and the property falls back silently, which
+// is the failure no other predicate sees.
+export const TIER2_TOKENS = [
+  '--surface',
+  '--surface-raised',
+  '--text-1',
+  '--text-2',
+  '--border',
+  '--border-ui',
+  '--radius-container',
+  '--card-pad',
+  '--elev-card',
+  '--grain-opacity',
+  '--dur-ui',
+  '--focus-ring',
+];
+
+// Stricter than coverage, and a different predicate: the two blocks must declare the same KEY SET.
+// A key present in one ground and missing in the other is the two-grounds rule failing open, and
+// coverage cannot see it when nothing reads the key (the typo case: `--card-padd` in one block).
+// The deltas are DECLARED, never inferred from what the sheet happens to emit — the idiom
+// `ADMIN_DROPPED_KEYS` established. Editing this table is a reviewable act.
+export const SCOPE_DELTA = {
+  'app-only': ['--border-ui'],
+  'editorial-only': [],
+};
+
+export function findScopeCoverage(cssFiles, semanticText, delta = SCOPE_DELTA) {
+  const blocks = scopeBlocks(stripComments(semanticText));
+  const declared = (name) => (body) =>
+    new RegExp(`--${name.slice(2)}(?![\\w-])\\s*:`, '').test(body);
+  // `bothOk` carries --border-ui through the same declared table `scope parity` uses, and the
+  // reason is real rather than convenient: it is a tier-1 primitive the app block restates, so a
+  // read of it resolves on either ground. Requiring it in both blocks would make 2B's A-2
+  // migration — the change that finally reads it — fail a correct edit. One table, two predicates.
+  const bothOk = new Set();
+  for (const name of delta['app-only']) bothOk.add(name);
+  for (const name of delta['editorial-only']) bothOk.add(name);
+
+  const failures = [];
+  const reads = new Map(); // name -> first site, de-duped by name like `undefined token`
+  for (const file of cssFiles) {
+    const text = stripComments(file.text);
+    for (const m of text.matchAll(/var\(\s*(--[\w-]+)/g)) {
+      if (!TIER2_TOKENS.includes(m[1]) || reads.has(m[1])) continue;
+      reads.set(m[1], { path: file.path, line: lineOf(file.text, m.index) });
+    }
+  }
+  // A missing block is this check's own failure to report, never a green run: with no
+  // `[data-surface="app"]` in the sheet every read of a tier-2 name would be "undeclared", and
+  // the operator would get twelve findings about tokens instead of one about the cascade.
+  for (const surface of ['editorial', 'app']) {
+    if (!blocks.has(surface)) {
+      failures.push({
+        path: 'src/styles/tokens/2-semantic.css',
+        line: 0,
+        text: `no [data-surface="${surface}"] block — coverage cannot judge reads against nothing`,
+      });
+    }
+  }
+  if (failures.length) return failures;
+  for (const [name, site] of reads) {
+    if (bothOk.has(name)) continue;
+    for (const [surface, body] of blocks) {
+      if (!declared(name)(body)) {
+        failures.push({
+          ...site,
+          text: `${name} is read but not declared in [data-surface="${surface}"]`,
+        });
+      }
+    }
+  }
+  return failures;
+}
+
+export function findScopeParity(semanticText, delta = SCOPE_DELTA) {
+  const blocks = scopeBlocks(stripComments(semanticText));
+  const keys = (body) => new Set([...body.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
+  if (!blocks.has('editorial') || !blocks.has('app')) {
+    return [
+      {
+        path: 'src/styles/tokens/2-semantic.css',
+        line: 0,
+        text: 'both [data-surface] blocks are required to compare key sets',
+      },
+    ];
+  }
+  const ed = keys(blocks.get('editorial'));
+  const ap = keys(blocks.get('app'));
+  const failures = [];
+  for (const name of ed) {
+    if (!ap.has(name) && !delta['editorial-only'].includes(name)) {
+      failures.push({
+        path: 'src/styles/tokens/2-semantic.css',
+        line: 0,
+        text: `${name} declared in editorial only — add it to the app block or to SCOPE_DELTA`,
+      });
+    }
+  }
+  for (const name of ap) {
+    if (!ed.has(name) && !delta['app-only'].includes(name)) {
+      failures.push({
+        path: 'src/styles/tokens/2-semantic.css',
+        line: 0,
+        text: `${name} declared in app only — add it to the editorial block or to SCOPE_DELTA`,
+      });
+    }
+  }
+  // A delta row for a key that is NOT actually a delta is dead table, and a dead table teaches the
+  // next reader that tables here are decoration. Refused.
+  for (const name of delta['app-only']) {
+    if (ed.has(name) && ap.has(name)) {
+      failures.push({
+        path: 'src/styles/tokens/2-semantic.css',
+        line: 0,
+        text: `SCOPE_DELTA lists ${name} as app-only but both blocks declare it`,
+      });
+    }
+  }
+  return failures;
+}
+
+// §4.2's six rows, declared rather than inferred. This check exists because nothing else can:
+// `astro build` validates no component props — measured at this BASE (2026-10-13), the anchored
+// `grep -cE "^[[:space:]]*interface Props" src/layouts/Base.astro` prints 0 (the unanchored form
+// prints 1 only because the comment above the props destructure states the absence) and
+// node_modules/@astrojs/check is not installed — so a page that omits `surface` ships an unscoped
+// document that falls through to `:root`, keeps working, and fails no other predicate. The
+// guarantee is therefore mechanical here, reading the artifact that carries it, and not in the
+// compiler.
+export const ROUTE_SURFACES = [
+  ['dist/index.html', 'editorial'],
+  ['dist/menu/index.html', 'app'],
+  ['dist/booking/index.html', 'app'],
+  ['dist/my-orders/index.html', 'app'],
+  ['dist/admin/index.html', 'app'],
+  ['dist/404.html', 'editorial'],
+];
+export const TONE_TAG_TOTAL = 8; // six footers + the hero + the loyalty band
+export const TONE_VALUES = ['dark', 'fill'];
+
+export function findScopeDeclaration(pages, approved = ROUTE_SURFACES) {
+  const failures = [];
+  let toneTotal = 0;
+  const toneSeen = new Set();
+  for (const page of pages) {
+    // (A) exactly one data-surface on <html>, matching this route's declared row. An unknown path
+    // is reported, not skipped: a seventh page must edit this table, the same reviewable act
+    // `ADMIN_DROPPED_KEYS` is.
+    const row = approved.find(([path]) => path === page.path);
+    if (!row) {
+      failures.push(contractFail(page.path, 'no declared route -> surface row for this document'));
+      continue;
+    }
+    const html = /<html\b[^>]*>/i.exec(page.text);
+    if (!html) {
+      failures.push(contractFail(page.path, 'no <html> tag found'));
+      continue;
+    }
+    const attrs = [...html[0].matchAll(/\bdata-surface="([^"]*)"/g)];
+    if (attrs.length !== 1) {
+      failures.push(
+        contractFail(page.path, `<html> carries ${attrs.length} data-surface, expected 1`, 0, '')
+      );
+    } else if (attrs[0][1] !== row[1]) {
+      const why = `<html data-surface="${attrs[0][1]}"> but ${row[0]} is declared "${row[1]}"`;
+      failures.push(contractFail(page.path, why));
+    }
+    // (B) every data-tone tag carries data-surface on the SAME tag. An attribute selector never
+    // matches by inheritance, so `[data-surface="editorial"][data-tone="dark"]` is a conjunction
+    // and a lone data-tone on an app document silently misses — the footer's 6.77 -> 3.46
+    // regression spec §4.3 prices. That is the shape this clause exists to refuse.
+    // This scans the whole document text, so it would also count a `data-tone="` sitting inside an
+    // inline <script> string. Measured precondition at this BASE (re-run by Task 11 row 11):
+    //   grep -rho 'data-tone="' dist/ | wc -l          -> 8   (one per tag, none per string)
+    //   grep -rl 'data-tone' dist/_astro/*.js | wc -l  -> 0   (no bundle string carries it)
+    // The line form `grep -rh 'data-tone' dist/` prints 7 — six HTML lines carry the eight tags
+    // and one minified-CSS line carries the selector — so the occurrence form is the count of
+    // markup tags, and the second grep is what keeps it one.
+    for (const tag of page.text.matchAll(/<[a-zA-Z][^>]*>/g)) {
+      if (!/\bdata-tone="/.test(tag[0])) continue;
+      toneTotal += 1;
+      for (const v of tag[0].matchAll(/\bdata-tone="([^"]*)"/g)) toneSeen.add(v[1]);
+      if (!/\bdata-surface="/.test(tag[0])) {
+        const head = tag[0].slice(0, 60).replace(/\s+/g, ' ');
+        failures.push(
+          contractFail(page.path, `data-tone without data-surface on the same tag: ${head}`)
+        );
+      }
+    }
+  }
+  // (C) the corpus tally. Exact equality, not `>=`: eight is a measurement of this phase's markup,
+  // and a ninth tag is a new tone declaration a reviewer should have to look at.
+  if (toneTotal !== TONE_TAG_TOTAL) {
+    failures.push(
+      contractFail('dist', `data-tone count is ${toneTotal}, declared ${TONE_TAG_TOTAL}`)
+    );
+  }
+  for (const value of toneSeen) {
+    if (!TONE_VALUES.includes(value)) {
+      failures.push(contractFail('dist', `data-tone="${value}" is not a declared tone`));
+    }
+  }
+  for (const value of TONE_VALUES) {
+    if (!toneSeen.has(value)) {
+      failures.push(contractFail('dist', `declared tone "${value}" appears on no tag`));
+    }
+  }
+  return failures;
+}
+
 // Nothing else in the guard reads global.css, so the declaration of what ships was invisible to
 // it: dropping an @import removed real CSS while every check stayed green, and an orphan slice on
 // disk fed findUndefinedTokens definitions that never ship - masking the exact bug class that
@@ -637,6 +956,20 @@ function main() {
         }));
       },
     ],
+    // Task 9's four. Registered inside the array literal, above the conditional `token drift`
+    // push, so the count printed at the end still comes from CHECKS.length and `token drift`
+    // stays the last entry it conditionally is.
+    ['alias absence', () => findAliasAbsence(cssFiles)],
+    [
+      'scope coverage',
+      () =>
+        findScopeCoverage(cssFiles, readSrc(cssFiles, 'src/styles/tokens/2-semantic.css')),
+    ],
+    [
+      'scope parity',
+      () => findScopeParity(readSrc(cssFiles, 'src/styles/tokens/2-semantic.css')),
+    ],
+    ['scope declaration', () => findScopeDeclaration(pages)],
   ];
   // The docs are gitignored, so a fresh clone must still build: guard the check on the file
   // rather than deleting it — a missing DESIGN.md must never read as zero drift. The absence is

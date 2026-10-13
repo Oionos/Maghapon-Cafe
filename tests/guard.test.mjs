@@ -5,16 +5,25 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CSS_IMPORT_ORDER,
+  DELETED_ALIASES,
+  findAliasAbsence,
   findExternalOrigins,
+  findRouterContract,
+  findScopeCoverage,
+  findScopeDeclaration,
+  findScopeParity,
   findStyleImportMismatches,
   findUndefinedTokens,
   findIconFontUsage,
   findMissingRoutes,
-  findRouterContract,
   findSpriteSymbols,
   findTokenDrift,
   findTransitionCss,
   PERSIST_KEYS,
+  SCOPE_DELTA,
+  TIER2_TOKENS,
+  TMP_READ_CAP,
+  TONE_TAG_TOTAL,
   TRANSITION_NAMES,
   walk,
   WEB_ROUTES,
@@ -881,4 +890,352 @@ test('TRANSITION_NAMES is derived from PERSIST_KEYS, not hand-listed beside it',
     /PERSIST_KEYS/,
     'TRANSITION_NAMES must be computed from PERSIST_KEYS, not written out beside it'
   );
+});
+
+// ---- Task 9: alias absence, scope coverage, scope parity, scope declaration -------------------
+// `alias absence` and the two scope predicates read the walked CSS corpus; `scope declaration`
+// reads the built documents. One landmine per fixture, and every ACCEPT that can run against the
+// real tree does (tests 3 and 7) — Ruling S's "judge against the true files".
+const walkedCss = () =>
+  walk(join(root, 'src/styles')).map((p) => ({
+    path: relative(root, p).split(sep).join('/'),
+    text: readFileSync(p, 'utf8'),
+  }));
+const readOf = (path) => {
+  const hit = walkedCss().find((f) => f.path === path);
+  assert.ok(hit, `${path} is missing from src/styles — the fixture cannot run`);
+  return hit.text;
+};
+
+// The two scope blocks as fixture text. EDITORIAL_11 is TIER2_TOKENS minus the declared app-only
+// delta, the same shape the shipped sheet has. The compound and tone-only selectors ride along on
+// purpose: `scopeBlocks`'s `]`-before-`{` requirement is what excludes them, and a predicate that
+// started feeding them in would let the compound block OVERWRITE the plain editorial block (the
+// map's later set wins) and refuse these correct fixtures — Ruling S's landmine, pinned here.
+const EDITORIAL_11 = TIER2_TOKENS.filter((k) => k !== '--border-ui');
+const semSheet = (edKeys, apKeys) =>
+  [
+    ':root{--primitive-only:1}',
+    `[data-surface="editorial"]{${edKeys.map((k) => `${k}:1;`).join('')}}`,
+    `[data-surface="app"]{${apKeys.map((k) => `${k}:1;`).join('')}}`,
+    '[data-surface="editorial"][data-tone="dark"]{--tone-override:1}',
+    '[data-tone="fill"]{--tone-fill:1}',
+  ].join('\n');
+
+// The built-document shape `scope declaration` reads: one `data-surface` on <html>, and every
+// tone tag self-declaring its surface on the same tag. Six documents with literal paths — not
+// derived from ROUTE_SURFACES, so an edit to that table makes this fixture fail rather than
+// follow it. The tone spread mirrors the measured corpus: index carries three tags (hero,
+// loyalty band, footer), each other document one — 8 tags, 7 dark and 1 fill.
+const toneTag = (surface, tone, tag = 'section') =>
+  `<${tag} data-surface="${surface}" data-tone="${tone}"></${tag}>`;
+const declDoc = (surface, tones) =>
+  `<!doctype html><html lang="en" data-surface="${surface}"><body>` +
+  `${tones.map((t) => toneTag(surface, t)).join('')}</body></html>`;
+const sixDocs = () => [
+  { path: 'dist/index.html', text: declDoc('editorial', ['dark', 'fill', 'dark']) },
+  { path: 'dist/menu/index.html', text: declDoc('app', ['dark']) },
+  { path: 'dist/booking/index.html', text: declDoc('app', ['dark']) },
+  { path: 'dist/my-orders/index.html', text: declDoc('app', ['dark']) },
+  { path: 'dist/admin/index.html', text: declDoc('app', ['dark']) },
+  { path: 'dist/404.html', text: declDoc('editorial', ['dark']) },
+];
+
+test('findAliasAbsence flags a deleted alias defined again', () => {
+  const fails = findAliasAbsence([
+    {
+      path: 'src/styles/tokens/3-transitional.css',
+      text: 'a{border-radius:var(--tmp-radius-container)}\n--radius: 2rem;\n--radius-sm: 1rem;',
+    },
+  ]);
+  // Two findings, in name order. The longer name is named as itself, never as the head of
+  // `--radius` — the `(?![\w-])` lookahead this fixture pins.
+  assert.deepEqual(fails, [
+    {
+      path: 'src/styles/tokens/3-transitional.css',
+      line: 2,
+      text: 'deleted alias --radius reappears: --radius: — §3.3 deletes these names',
+    },
+    {
+      path: 'src/styles/tokens/3-transitional.css',
+      line: 3,
+      text: 'deleted alias --radius-sm reappears: --radius-sm: — §3.3 deletes these names',
+    },
+  ]);
+});
+
+test('findAliasAbsence flags a deleted alias read again', () => {
+  const fails = findAliasAbsence([
+    { path: 'src/styles/hero.css', text: '.x{border-radius: var(--radius)}' },
+  ]);
+  assert.deepEqual(fails, [
+    {
+      path: 'src/styles/hero.css',
+      line: 1,
+      text: 'deleted alias --radius reappears: var(--radius) — §3.3 deletes these names',
+    },
+  ]);
+});
+
+test('findAliasAbsence accepts the real tree and pins the cap and the eight names', () => {
+  // No deleted name is defined or read anywhere in src/styles/, and the 31 transitional reads
+  // all name known rows.
+  assert.deepEqual(findAliasAbsence(walkedCss()), []);
+  assert.equal(TMP_READ_CAP, 31, 'the measured 2A shape: 20 + 5 + 3 + 3');
+  // Written out, not derived: this is §3.3's list, and a name added to or dropped from it is a
+  // design edit the test must see, not follow.
+  assert.deepEqual(DELETED_ALIASES, [
+    'radius', 'radius-sm', 'radius-xs', 'shadow',
+    'shadow-lift', 'shadow-soft', 'line-strong', 'ease',
+  ]);
+});
+
+test('findAliasAbsence lets 31 transitional reads stand and refuses the 32nd', () => {
+  const reads = (n) =>
+    Array.from({ length: n }, (_, i) => `.u${i}{border-radius:var(--tmp-radius-container)}`)
+      .join('\n');
+  const files = (n) => [{ path: 'src/styles/hero.css', text: reads(n) }];
+  // 31 IS the cap: a CAP, not an equality, so the layer may shrink from here and 2B lands at 0.
+  assert.deepEqual(findAliasAbsence(files(31)), []);
+  // One aggregate finding, against the layer rather than a line — `line: 0` because
+  // `stripComments` rewrites offsets and any line here would point at the wrong place.
+  assert.deepEqual(findAliasAbsence(files(32)), [
+    {
+      path: 'src/styles/',
+      line: 0,
+      text: '32 --tmp-* reads exceeds the cap of 31 — the transitional layer may only ' +
+        'shrink; a new transitional consumer belongs in 2B',
+    },
+  ]);
+});
+
+test('findAliasAbsence refuses a --tmp-* name outside TMP_SITES', () => {
+  const fails = findAliasAbsence([
+    { path: 'src/styles/hero.css', text: '.x{border-radius:var(--tmp-new-thing)}' },
+  ]);
+  // Refused by name, and only once: one read is far under the cap, so the aggregate stays silent.
+  assert.deepEqual(fails, [
+    {
+      path: 'src/styles/hero.css',
+      line: 1,
+      text:
+        'unknown --tmp-new-thing — not in TMP_SITES; a new transitional token is a spec ' +
+        'change',
+    },
+  ]);
+});
+
+test('findScopeCoverage accepts a read declared in both blocks, --border-ui excepted', () => {
+  const reads = [
+    {
+      path: 'src/styles/hero.css',
+      text: '.a{color:var(--card-pad)}\n.b{outline-color:var(--border-ui)}',
+    },
+  ];
+  // `--card-pad` is declared in both grounds; `--border-ui` only in the app block, and the
+  // SCOPE_DELTA row is what keeps that read exempt — losing the table turns this accept red.
+  assert.deepEqual(findScopeCoverage(reads, semSheet(EDITORIAL_11, TIER2_TOKENS)), []);
+});
+
+test('findScopeCoverage accepts the shipped sheet against the real tree', () => {
+  // §4.1's only real tier-2 read (`--focus-ring` in base.css) must resolve in both blocks of the
+  // sheet that ships today; the corpus here is every walked CSS file, not a fixture.
+  assert.deepEqual(
+    findScopeCoverage(walkedCss(), readOf('src/styles/tokens/2-semantic.css')),
+    []
+  );
+});
+
+test('findScopeCoverage names the block that lacks the read key', () => {
+  const reads = [{ path: 'src/styles/hero.css', text: '.x{padding:var(--card-pad)}' }];
+  const app = TIER2_TOKENS.filter((k) => k !== '--card-pad');
+  assert.deepEqual(findScopeCoverage(reads, semSheet(EDITORIAL_11, app)), [
+    {
+      path: 'src/styles/hero.css',
+      line: 1,
+      text: '--card-pad is read but not declared in [data-surface="app"]',
+    },
+  ]);
+});
+
+test('findScopeCoverage reports a read declared in neither block once per block', () => {
+  const reads = [{ path: 'src/styles/hero.css', text: '.x{duration:var(--dur-ui)}' }];
+  const ed = EDITORIAL_11.filter((k) => k !== '--dur-ui');
+  const app = TIER2_TOKENS.filter((k) => k !== '--dur-ui');
+  // One finding per ground: the two blocks are separate resolutions, and the operator has to fix
+  // both (or one of them, and know which).
+  assert.deepEqual(findScopeCoverage(reads, semSheet(ed, app)), [
+    {
+      path: 'src/styles/hero.css',
+      line: 1,
+      text: '--dur-ui is read but not declared in [data-surface="editorial"]',
+    },
+    {
+      path: 'src/styles/hero.css',
+      line: 1,
+      text: '--dur-ui is read but not declared in [data-surface="app"]',
+    },
+  ]);
+});
+
+test('findScopeCoverage refuses a sheet with no scope blocks instead of going green', () => {
+  const reads = [{ path: 'src/styles/hero.css', text: '.x{padding:var(--card-pad)}' }];
+  // Empty text is a plumbing failure, not a design fact: the check reports its own inability to
+  // judge, exactly two findings, instead of listing reads against nothing (or passing them).
+  assert.deepEqual(findScopeCoverage(reads, ''), [
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      line: 0,
+      text: 'no [data-surface="editorial"] block — coverage cannot judge reads against nothing',
+    },
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      line: 0,
+      text: 'no [data-surface="app"] block — coverage cannot judge reads against nothing',
+    },
+  ]);
+});
+
+test('findScopeParity accepts two blocks declaring the same key set', () => {
+  // Identical 11-key grounds: parity is a key-set comparison, so this must be silent — a delta
+  // row cannot save a missing key here because nothing is missing (see test 14 for the shipped
+  // asymmetric shape, which the declared table carries).
+  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_11, EDITORIAL_11)), []);
+});
+
+test('findScopeParity reports a key only the editorial block declares', () => {
+  const app = TIER2_TOKENS.filter((k) => k !== '--card-pad');
+  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_11, app)), [
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      line: 0,
+      text: '--card-pad declared in editorial only — add it to the app block or to SCOPE_DELTA',
+    },
+  ]);
+});
+
+test('findScopeParity reports a key only the app block declares', () => {
+  const ed = EDITORIAL_11.filter((k) => k !== '--card-pad');
+  assert.deepEqual(findScopeParity(semSheet(ed, EDITORIAL_11)), [
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      line: 0,
+      text: '--card-pad declared in app only — add it to the editorial block or to SCOPE_DELTA',
+    },
+  ]);
+});
+
+test('findScopeParity carries --border-ui through SCOPE_DELTA, the declared table', () => {
+  const shipped = readOf('src/styles/tokens/2-semantic.css');
+  // The real sheet: 11 editorial keys, 12 app keys, `--border-ui` the one difference.
+  assert.deepEqual(findScopeParity(shipped), []);
+  // The row is what keeps it green: remove the exemption and the same correct sheet is refused.
+  assert.deepEqual(findScopeParity(shipped, { 'app-only': [], 'editorial-only': [] }), [
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      line: 0,
+      text: '--border-ui declared in app only — add it to the editorial block or to SCOPE_DELTA',
+    },
+  ]);
+  // Written out, not derived: editing this table is a reviewable act, so the test reads it the
+  // way the guard declares it.
+  assert.deepEqual(SCOPE_DELTA, { 'app-only': ['--border-ui'], 'editorial-only': [] });
+});
+
+test('findScopeParity refuses an app-only key the delta table does not declare', () => {
+  // `--border-ui` is the declared first app-only key; `--probe-extra` is the second and has no
+  // row. The table is consulted, never whatever the sheet happens to emit.
+  const appWithProbe = [...TIER2_TOKENS, '--probe-extra'];
+  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_11, appWithProbe)), [
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      line: 0,
+      text: '--probe-extra declared in app only — add it to the editorial block or to ' +
+        'SCOPE_DELTA',
+    },
+  ]);
+});
+
+test('findScopeDeclaration accepts the six-document shape with its eight tone tags', () => {
+  assert.deepEqual(findScopeDeclaration(sixDocs()), []);
+});
+
+test('findScopeDeclaration refuses a document whose <html> carries no data-surface', () => {
+  const docs = sixDocs();
+  docs[5] = {
+    path: 'dist/404.html',
+    text: '<!doctype html><html lang="en"><body>' +
+      toneTag('editorial', 'dark') + '</body></html>',
+  };
+  // An unscoped document falls through to :root and keeps working — that is exactly why the
+  // count, not the tag, is the finding.
+  assert.deepEqual(findScopeDeclaration(docs), [
+    {
+      path: 'dist/404.html',
+      line: 1,
+      text: '<html> carries 0 data-surface, expected 1',
+    },
+  ]);
+});
+
+test('findScopeDeclaration refuses a data-surface that contradicts its route row', () => {
+  const docs = sixDocs();
+  docs[1] = { path: 'dist/menu/index.html', text: declDoc('editorial', ['dark']) };
+  assert.deepEqual(findScopeDeclaration(docs), [
+    {
+      path: 'dist/menu/index.html',
+      line: 1,
+      text: '<html data-surface="editorial"> but dist/menu/index.html is declared "app"',
+    },
+  ]);
+});
+
+test('findScopeDeclaration refuses a data-tone tag without data-surface on the same tag', () => {
+  const docs = sixDocs();
+  docs[0] = {
+    path: 'dist/index.html',
+    text: '<!doctype html><html lang="en" data-surface="editorial"><body>' +
+      toneTag('editorial', 'dark') + toneTag('editorial', 'fill') +
+      '<footer data-tone="dark"></footer></body></html>',
+  };
+  // An attribute selector never matches by inheritance, so a lone tone tag silently misses on an
+  // app document — the footer regression spec §4.3 prices. The finding names the tag.
+  assert.deepEqual(findScopeDeclaration(docs), [
+    {
+      path: 'dist/index.html',
+      line: 1,
+      text: 'data-tone without data-surface on the same tag: <footer data-tone="dark">',
+    },
+  ]);
+});
+
+test('findScopeDeclaration counts tone tags exactly — seven and nine are both refused', () => {
+  // Exact equality, not `>=`: eight is a measurement of this phase's markup, and a ninth tag is
+  // a new tone declaration a reviewer should look at.
+  assert.equal(TONE_TAG_TOTAL, 8);
+  assert.deepEqual(findScopeDeclaration(sixDocs()), []);
+  const seven = sixDocs();
+  seven[0] = { path: 'dist/index.html', text: declDoc('editorial', ['dark', 'fill']) };
+  assert.deepEqual(findScopeDeclaration(seven), [
+    { path: 'dist', line: 1, text: 'data-tone count is 7, declared 8' },
+  ]);
+  const nine = sixDocs();
+  nine[0] = {
+    path: 'dist/index.html',
+    text: declDoc('editorial', ['dark', 'fill', 'dark', 'fill']),
+  };
+  assert.deepEqual(findScopeDeclaration(nine), [
+    { path: 'dist', line: 1, text: 'data-tone count is 9, declared 8' },
+  ]);
+});
+
+test('findScopeDeclaration refuses an undeclared tone and reports the missing declared one', () => {
+  const docs = sixDocs();
+  docs[0] = { path: 'dist/index.html', text: declDoc('editorial', ['dark', 'night', 'dark']) };
+  // Two findings, because they are two facts: the sheet invented a tone, and one declared tone
+  // appears nowhere — the count alone (still 8) would read green.
+  assert.deepEqual(findScopeDeclaration(docs), [
+    { path: 'dist', line: 1, text: 'data-tone="night" is not a declared tone' },
+    { path: 'dist', line: 1, text: 'declared tone "fill" appears on no tag' },
+  ]);
 });
