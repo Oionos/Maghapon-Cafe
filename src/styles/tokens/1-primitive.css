@@ -21,9 +21,10 @@
   --open-600: #2e7d32;
   --border-ui: #94877f;
 
-  /* Kept primitives — byte-identical to legacy-root.css and unchanged by 2A. --font-ui is the
-     exception among them: it is a new name this phase declares ahead of Task 5's rename sweep,
-     carrying the value today's 13 reads reach through --font-body. */
+  /* Kept primitives — `--line`, `--line-light`, `--font-display`, `--container`, `--header-h`
+     and `--ease-out` carried their values from the deleted legacy root. `--font-ui` is the new
+     name that replaced legacy `--font-body` in Task 5's rename sweep: 0 reads of the old name
+     remain. */
   --line: rgba(42, 18, 6, 0.10);
   --line-light: rgba(253, 251, 247, 0.12);
   --font-display: 'Fraunces', Georgia, serif;
