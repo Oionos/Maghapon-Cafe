@@ -1097,10 +1097,14 @@ test('findScopeCoverage refuses a sheet with no scope blocks instead of going gr
 });
 
 test('findScopeParity accepts two blocks declaring the same key set', () => {
-  // Identical 11-key grounds: parity is a key-set comparison, so this must be silent — a delta
-  // row cannot save a missing key here because nothing is missing (see test 14 for the shipped
-  // asymmetric shape, which the declared table carries).
-  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_11, EDITORIAL_11)), []);
+  // Identical 11-key grounds under a delta table with no rows declared: parity is a key-set
+  // comparison, so this must be silent. With SCOPE_DELTA's --border-ui row active the same sheet
+  // is the neither-declares dead-delta state and is refused (the refusal this fix round adds) —
+  // an identical pair that simply omits the delta key is no longer a legal sheet.
+  assert.deepEqual(
+    findScopeParity(semSheet(EDITORIAL_11, EDITORIAL_11), { 'app-only': [], 'editorial-only': [] }),
+    []
+  );
 });
 
 test('findScopeParity reports a key only the editorial block declares', () => {
@@ -1115,8 +1119,10 @@ test('findScopeParity reports a key only the editorial block declares', () => {
 });
 
 test('findScopeParity reports a key only the app block declares', () => {
+  // The app side carries the shipped tier-2 set, --border-ui included, so the declared app-only
+  // delta is accounted for and the only undeclared asymmetry is --card-pad.
   const ed = EDITORIAL_11.filter((k) => k !== '--card-pad');
-  assert.deepEqual(findScopeParity(semSheet(ed, EDITORIAL_11)), [
+  assert.deepEqual(findScopeParity(semSheet(ed, TIER2_TOKENS)), [
     {
       path: 'src/styles/tokens/2-semantic.css',
       line: 0,
@@ -1238,4 +1244,62 @@ test('findScopeDeclaration refuses an undeclared tone and reports the missing de
     { path: 'dist', line: 1, text: 'data-tone="night" is not a declared tone' },
     { path: 'dist', line: 1, text: 'declared tone "fill" appears on no tag' },
   ]);
+});
+
+// Fix round 1 (review Q-1/Q-2/Q-3): raw-file line reporting under comments, and the two
+// scope-parity dead-delta states — branches no test in the Task 9 table distinguished.
+test('findAliasAbsence reports the raw-file line under a multi-line comment', () => {
+  const text = [
+    '/* one',
+    '   two',
+    '   three */',
+    'a { border-radius: var(--radius); }',
+  ].join('\n');
+  const fails = findAliasAbsence([{ path: 'x.css', text }]);
+  assert.equal(fails.length, 1);
+  assert.equal(fails[0].line, 4);
+  assert.match(fails[0].text, /--radius/);
+});
+
+test('findScopeCoverage reports the raw-file line under a comment', () => {
+  const semantic = [
+    '[data-surface="editorial"] { --card-pad: 1rem; }',
+    '[data-surface="app"] { --card-pad: 1rem; }',
+  ].join('\n');
+  const css = [
+    '/* note',
+    '   note */',
+    'a { padding: var(--dur-ui); }',
+  ].join('\n');
+  const fails = findScopeCoverage([{ path: 'x.css', text: css }], semantic);
+  assert.equal(fails.length, 2);
+  for (const f of fails) assert.equal(f.line, 3);
+});
+
+test('findScopeParity refuses a delta row both blocks declare', () => {
+  const semantic = [
+    '[data-surface="editorial"] { --card-pad: 1rem; --border-ui: 1px; }',
+    '[data-surface="app"] { --card-pad: 1rem; --border-ui: 1px; }',
+  ].join('\n');
+  const fails = findScopeParity(semantic);
+  assert.equal(fails.length, 1);
+  assert.match(fails[0].text, /--border-ui as app-only but both blocks declare it/);
+});
+
+test('findScopeParity refuses a delta row neither block declares', () => {
+  const semantic = [
+    '[data-surface="editorial"] { --card-pad: 1rem; }',
+    '[data-surface="app"] { --card-pad: 1rem; }',
+  ].join('\n');
+  const fails = findScopeParity(semantic);
+  assert.equal(fails.length, 1);
+  assert.match(fails[0].text, /--border-ui as app-only but neither block declares it/);
+});
+
+test('findScopeCoverage reports only the missing block when one is gone', () => {
+  const semantic = '[data-surface="editorial"] { --card-pad: 1rem; }';
+  const css = 'a { color: var(--dur-ui); }';
+  const fails = findScopeCoverage([{ path: 'x.css', text: css }], semantic);
+  assert.equal(fails.length, 1);
+  assert.match(fails[0].text, /no \[data-surface="app"\] block/);
 });

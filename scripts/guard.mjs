@@ -315,17 +315,22 @@ function reducedMotionBlocks(cssText) {
 }
 
 // What a browser cannot see, this check must not see either: a commented-out declaration is not a
-// declaration. Leaving `/* … */` text in the input made check 9 refuse a correct sheet — parking a
-// rule mid-restyle is the normal thing to do with a disabled `view-transition-name` — while a
-// commented-out `@keyframes` quietly satisfied "defined". An unterminated `/*` is closed at the end
-// of the text, exactly as CSS does, because a lazy-only closer strips nothing from such a sheet and
-// hands its commented-out tail back to the count. Measured 2026-09-26 over the shipped
-// `dist/_astro/Base.DthEEQz0.css`: 0 occurrences of `/*` in 47,768 chars, so today the strip is the
-// identity and the shapes it protects are Phase 2 authoring, not a live hole. The cost of the tail
-// form is that a `/*` inside a `url(data:…)` value would hide the rest of the sheet from this check
-// — the shipped sheet carries 2 `data:` URIs and none of them contains one.
+// declaration. Leaving `/* … */` text in the input made `transition css` refuse a correct sheet —
+// parking a rule mid-restyle is the normal thing to do with a disabled `view-transition-name` —
+// while a commented-out `@keyframes` quietly satisfied "defined". Each comment becomes whitespace
+// of the same length with its newlines kept, so every caller's offsets and line numbers stay the
+// raw file's: removal rewrote offsets, so every per-site finding read lines early (review Q-1 —
+// all five `--focus-ring` sites on the real tree, the worst 10 lines off). An identifier a comment
+// splits (`--rad/*x*/ius`) is separated, exactly as CSS reads it, where removal used to merge the
+// halves into a name the file never declares. An unterminated `/*` is closed at the end of the
+// text, exactly as CSS does, because a lazy-only closer would leave such a sheet's commented-out
+// tail in the count. Measured 2026-09-26 over the shipped `dist/_astro/Base.DthEEQz0.css`: 0
+// occurrences of `/*` in 47,768 chars, so today the strip is the identity and the shapes it
+// protects are Phase 2 authoring, not a live hole. The cost of the tail form is that a `/*` inside
+// a `url(data:…)` value would hide the rest of the sheet from this check — the shipped sheet
+// carries 2 `data:` URIs and none of them contains one.
 function stripComments(text) {
-  return text.replace(/\/\*[\s\S]*?(?:\*\/|$)/g, '');
+  return text.replace(/\/\*[\s\S]*?(?:\*\/|$)/g, (m) => m.replace(/[^\n]/g, ' '));
 }
 
 // Check 9 reads EVERY shipped CSS source — the bundled sheet plus each page's inline <style> — and
@@ -518,7 +523,6 @@ export const TMP_READ_CAP = TMP_SITES.reduce((n, [, count]) => n + count, 0);
 
 export function findAliasAbsence(cssFiles) {
   const failures = [];
-  const tmpReads = new Map();
   let total = 0;
   for (const file of cssFiles) {
     // A commented-out alias is not an alias (see `transition css` for why comments are stripped).
@@ -538,9 +542,11 @@ export function findAliasAbsence(cssFiles) {
         });
       }
     }
+    // Fallback-form reads (`var(--tmp-x, 1rem)`) are invisible to this census — 0 in the tree
+    // today; a fallback read of an EXISTING name would be counted by no check (an unknown one is
+    // still refused as undefined), so widen to `var\(\s*(--tmp-[\w-]+)` when the first appears.
     for (const m of text.matchAll(/var\(\s*(--tmp-[\w-]+)\s*\)/g)) {
       total += 1;
-      tmpReads.set(m[1], (tmpReads.get(m[1]) ?? 0) + 1);
       const row = TMP_SITES.find(([name]) => name === m[1]);
       if (!row) {
         failures.push({
@@ -552,8 +558,8 @@ export function findAliasAbsence(cssFiles) {
     }
   }
   // Reported once, against the layer rather than a line, because the defect is the aggregate.
-  // `line: 0` for the same reason the two scope checks use it: `stripComments` rewrites offsets,
-  // so a number computed from the stripped text would point at the wrong line of the real file.
+  // `line: 0` for the same reason the two scope checks use it: the finding is about the tree,
+  // not about one site in it.
   if (total > TMP_READ_CAP) {
     failures.push({
       path: 'src/styles/',
@@ -571,6 +577,10 @@ export function findAliasAbsence(cssFiles) {
 // match: that selector has another `]` in the way, and it is a tone refinement, not a scope block.
 // Feeding it in would make `scope parity` refuse a correct file — Ruling S's landmine — by
 // counting two declarations as a third editorial block.
+// Two limits, named: a grouped selector list (`[data-surface="a"], [data-surface="b"] {`) also
+// fails the `]`-before-`{` form and is refused loudly by the missing-block clause, never passed
+// silently; and a duplicated block for one surface overwrites the first in this Map, so the later
+// body is the one judged (one block per surface in today's sheet).
 function scopeBlocks(text) {
   const out = new Map();
   for (const m of text.matchAll(/\[data-surface="([a-z]+)"\]\s*\{/g)) {
@@ -696,6 +706,12 @@ export function findScopeParity(semanticText, delta = SCOPE_DELTA) {
         path: 'src/styles/tokens/2-semantic.css',
         line: 0,
         text: `SCOPE_DELTA lists ${name} as app-only but both blocks declare it`,
+      });
+    } else if (!ed.has(name) && !ap.has(name)) {
+      failures.push({
+        path: 'src/styles/tokens/2-semantic.css',
+        line: 0,
+        text: `SCOPE_DELTA lists ${name} as app-only but neither block declares it`,
       });
     }
   }
