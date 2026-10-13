@@ -4,15 +4,19 @@ import { existsSync, globSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  CONTRAST_PAIRS,
+  contrastRatio,
   CSS_IMPORT_ORDER,
   DELETED_ALIASES,
   findAliasAbsence,
+  findContrast,
   findExternalOrigins,
   findRouterContract,
   findScopeCoverage,
   findScopeDeclaration,
   findScopeParity,
   findStyleImportMismatches,
+  findTouchTargets,
   findUndefinedTokens,
   findIconFontUsage,
   findMissingRoutes,
@@ -24,6 +28,8 @@ import {
   TIER2_TOKENS,
   TMP_READ_CAP,
   TONE_TAG_TOTAL,
+  TOUCH_FLOOR,
+  TOUCH_TARGETS,
   TRANSITION_NAMES,
   walk,
   WEB_ROUTES,
@@ -1302,4 +1308,193 @@ test('findScopeCoverage reports only the missing block when one is gone', () => 
   const fails = findScopeCoverage([{ path: 'x.css', text: css }], semantic);
   assert.equal(fails.length, 1);
   assert.match(fails[0].text, /no \[data-surface="app"\] block/);
+});
+
+// ---- Task 10: touch targets, contrast, §7.3's src-side transition case ------------------------
+// `touch targets` reads the walked CSS corpus and `contrast` reads the one primitive token file;
+// both ACCEPT against the real tree (tests 1 and 5) — Ruling S's "judge against the true files".
+// Tests 12 and 13 cover the two branches the briefed eleven left to inference: the non-px refusal
+// (a value the check must not silently convert) and a table row naming a file outside the set.
+const touchSet = (cart = 44, button = 44, tab = 44) => [
+  {
+    path: 'src/styles/cart-drawer.css',
+    text: [
+      '.cart-line-qty button {',
+      '  min-width: 44px;',
+      `  min-height: ${cart}px;`,
+      '}',
+    ].join('\n'),
+  },
+  {
+    path: 'src/styles/button.css',
+    text: ['.btn-sm {', `  min-height: ${button}px;`, '}'].join('\n'),
+  },
+  {
+    path: 'src/styles/menu-card.css',
+    text: ['.tab-btn {', `  min-height: ${tab}px;`, '}'].join('\n'),
+  },
+];
+
+test('touch targets accepts the real tree', () => {
+  assert.deepEqual(findTouchTargets(walkedCss()), []);
+});
+
+test('touch targets refuses each control under the floor, named per row', () => {
+  const cases = [
+    {
+      css: touchSet(34),
+      finding: {
+        path: 'src/styles/cart-drawer.css',
+        line: 1,
+        text: '.cart-line-qty button min-height: 34px is under the 44px touch floor',
+      },
+    },
+    {
+      css: touchSet(44, 40),
+      finding: {
+        path: 'src/styles/button.css',
+        line: 1,
+        text: '.btn-sm min-height: 40px is under the 44px touch floor',
+      },
+    },
+    {
+      css: touchSet(44, 44, 43),
+      finding: {
+        path: 'src/styles/menu-card.css',
+        line: 1,
+        text: '.tab-btn min-height: 43px is under the 44px touch floor',
+      },
+    },
+  ];
+  for (const { css, finding } of cases) {
+    assert.deepEqual(findTouchTargets(css), [finding]);
+  }
+});
+
+test('touch targets refuses a control whose matched rules declare no floor', () => {
+  const css = touchSet();
+  css[1] = { path: 'src/styles/button.css', text: '.btn-sm { color: red; }' };
+  assert.deepEqual(findTouchTargets(css), [
+    {
+      path: 'src/styles/button.css',
+      line: 0,
+      text: 'no rule for .btn-sm declaring min-height — the control has no floor',
+    },
+  ]);
+});
+
+test('touch targets pins its own table and floor', () => {
+  assert.equal(TOUCH_FLOOR, 44);
+  assert.deepEqual(
+    TOUCH_TARGETS.map((r) => r.selector),
+    ['.cart-line-qty button', '.btn-sm', '.tab-btn']
+  );
+});
+
+test('contrast accepts the twelve shipped rows on the real token file', () => {
+  assert.equal(CONTRAST_PAIRS.length, 12);
+  assert.deepEqual(findContrast(readOf('src/styles/tokens/1-primitive.css')), []);
+});
+
+test('contrast refuses a text pair under its minimum, printing the ratio', () => {
+  const pairs = [{ ...CONTRAST_PAIRS[0], min: 18 }];
+  assert.deepEqual(findContrast(readOf('src/styles/tokens/1-primitive.css'), pairs), [
+    {
+      path: 'src/styles/tokens/1-primitive.css',
+      line: 0,
+      text: 'text --ink-900 on --cream-0 = 17.1089, under 18 — headings on the app ground',
+    },
+  ]);
+});
+
+test('contrast refuses an indicator pair under 3.0 at its near-white ratio', () => {
+  // The fixture's ground is a near-white field (#fefefe) rather than a token: the row must be
+  // refused on its own numbers, and 1.0248 is re-derived with the shipped `contrastRatio`.
+  const pairs = [{ kind: 'ui', fg: '--cream-0', bg: '#fefefe', min: 3, why: 'fixture' }];
+  assert.deepEqual(findContrast(readOf('src/styles/tokens/1-primitive.css'), pairs), [
+    {
+      path: 'src/styles/tokens/1-primitive.css',
+      line: 0,
+      text: 'ui --cream-0 on #fefefe = 1.0248, under 3 — fixture',
+    },
+  ]);
+});
+
+test('contrast refuses a row whose token has no hex, and only that branch', () => {
+  const pairs = [{ ...CONTRAST_PAIRS[0], fg: '--not-a-token' }];
+  assert.deepEqual(findContrast(readOf('src/styles/tokens/1-primitive.css'), pairs), [
+    {
+      path: 'src/styles/tokens/1-primitive.css',
+      line: 0,
+      text: 'text pair --not-a-token on --cream-0 (fg): --not-a-token has no hex in the token file',
+    },
+  ]);
+});
+
+test('contrast refuses a token declared with an unparsable value', () => {
+  // The widened map read (A2) is what makes this fixture an unparsable VALUE rather than an
+  // absent token; the ratio path then divides garbage into NaN, and NaN < min is false, so the
+  // refusal printed is exactly one row.
+  const text = ['--ink-900: notahex;', '--cream-0: #fdfbf7;'].join('\n');
+  assert.deepEqual(findContrast(text, [{ ...CONTRAST_PAIRS[0] }]), [
+    {
+      path: 'src/styles/tokens/1-primitive.css',
+      line: 0,
+      text: 'text pair --ink-900 on --cream-0 (fg): unparsable notahex',
+    },
+  ]);
+});
+
+test('contrast accepts a value-preserving rename — names, not hexes', () => {
+  // All thirteen shipped hexes are distinct, so the only rename that preserves a row's ratio is
+  // the same value under a new name: --ink-950 carries --ink-900's hex and no row reads it yet.
+  const renamed = readOf('src/styles/tokens/1-primitive.css') + '\n--ink-950: #2a1206;\n';
+  const pairs = [{ ...CONTRAST_PAIRS[0], fg: '--ink-950' }];
+  assert.deepEqual(findContrast(renamed, pairs), []);
+  assert.equal(contrastRatio('#2a1206', '#fdfbf7').toFixed(4), '17.1089');
+});
+
+// §7.3's src-side half (Phase 1 Minor-4): an authored rogue name is refused once per source.
+// Its sister assertion — the name the sheet sets is the name the built DOM carries — stays a
+// dist-side claim and stays open: a dist-reading test would break `npm test` on a fresh clone,
+// where dist/ does not exist until `npm run build` has run.
+test('§7.3: findTransitionCss refuses a rogue name once per source', () => {
+  const rogue = (path) => ({
+    path,
+    text: '#tab-bar { view-transition-name: maghapon-tabbar }',
+  });
+  const names = (problems) => problems.filter((t) => t.includes('is not a persisted-node name'));
+  const expected = (path) =>
+    `view-transition-name: maghapon-tabbar is applied in ${path} but is not a persisted-node name`;
+  assert.deepEqual(names(findTransitionCss([rogue('src/styles/x.css')])), [
+    expected('src/styles/x.css'),
+  ]);
+  assert.equal(
+    names(findTransitionCss([rogue('src/styles/x.css'), rogue('src/styles/y.css')])).length,
+    2
+  );
+});
+
+test('touch targets refuses a non-px floor instead of converting it', () => {
+  const css = touchSet();
+  css[1] = { path: 'src/styles/button.css', text: '.btn-sm { min-height: 2.5rem; }' };
+  assert.deepEqual(findTouchTargets(css), [
+    {
+      path: 'src/styles/button.css',
+      line: 1,
+      text: 'min-height: 2.5rem is not a px value — the floor is judged in px',
+    },
+  ]);
+});
+
+test('touch targets refuses a table row naming a file outside the CSS set', () => {
+  const css = [{ path: 'src/styles/other.css', text: '' }];
+  const table = [{ file: 'src/styles/missing.css', selector: '.x', props: ['min-height'] }];
+  assert.deepEqual(findTouchTargets(css, table), [
+    {
+      path: 'src/styles/missing.css',
+      line: 0,
+      text: 'touch table names a file not in the CSS set',
+    },
+  ]);
 });

@@ -8,8 +8,8 @@
    same element, which is why the footer carries `data-surface="editorial"` on itself even
    though four of the six documents are `app`. Getting that wrong is not a rendering curiosity:
    the footer's focus ring drops from 6.77:1 to 3.46:1 on #1a0b02 while every other check stays
-   green (spec §9's correction 10). `scope declaration` (Task 9) is the guard that will refuse it;
-   until that check lands, nothing in the build catches this regression. */
+   green (spec §9's correction 10). `scope declaration` (Task 9) refuses it: every `data-tone`
+   tag must carry `data-surface` on itself, read from the built documents. */
 [data-surface="editorial"] {
   --surface: var(--cream-50);
   --surface-raised: var(--cream-0);

@@ -324,8 +324,8 @@ function reducedMotionBlocks(cssText) {
 // splits (`--rad/*x*/ius`) is separated, exactly as CSS reads it, where removal used to merge the
 // halves into a name the file never declares. An unterminated `/*` is closed at the end of the
 // text, exactly as CSS does, because a lazy-only closer would leave such a sheet's commented-out
-// tail in the count. Measured 2026-09-26 over the shipped `dist/_astro/Base.DthEEQz0.css`: 0
-// occurrences of `/*` in 47,768 chars, so today the strip is the identity and the shapes it
+// tail in the count. Measured 2026-10-13 over the shipped `dist/_astro/Base.cyweyQUY.css`: 0
+// occurrences of `/*` in 49,130 bytes, so today the strip is the identity and the shapes it
 // protects are Phase 2 authoring, not a live hole. The cost of the tail form is that a `/*` inside
 // a `url(data:…)` value would hide the rest of the sheet from this check — the shipped sheet
 // carries 2 `data:` URIs and none of them contains one.
@@ -807,6 +807,181 @@ export function findScopeDeclaration(pages, approved = ROUTE_SURFACES) {
   return failures;
 }
 
+// A declared selector -> minimum table, judged against the authored CSS rather than a browser.
+// The limit is stated where a reader will hit it: this check cannot audit its own membership, so
+// deleting a row is invisible to it and visible to test 4 below, which pins the selector set.
+// Same shape as `ADMIN_DROPPED_KEYS`: the reviewable act is the edit, not the tally.
+export const TOUCH_FLOOR = 44;
+export const TOUCH_TARGETS = [
+  {
+    file: 'src/styles/cart-drawer.css',
+    selector: '.cart-line-qty button',
+    props: ['min-width', 'min-height'],
+  },
+  { file: 'src/styles/button.css', selector: '.btn-sm', props: ['min-height'] },
+  { file: 'src/styles/menu-card.css', selector: '.tab-btn', props: ['min-height'] },
+];
+
+export function findTouchTargets(cssFiles, table = TOUCH_TARGETS, floor = TOUCH_FLOOR) {
+  const failures = [];
+  for (const row of table) {
+    const file = cssFiles.find((f) => f.path === row.file);
+    if (!file) {
+      failures.push({
+        path: row.file,
+        line: 0,
+        text: `touch table names a file not in the CSS set`,
+      });
+      continue;
+    }
+    const text = stripComments(file.text);
+    for (const prop of row.props) {
+      // Every declaration of `prop` inside every rule whose selector CONTAINS this one, so a
+      // compound site is read rather than guessed at. `.tab-btn:hover` is a different selector and
+      // is not matched: a hover rule that changes colour must not be able to satisfy or break a
+      // size predicate. `[^}]*` stops at the first block end, which is what keeps `:hover` out.
+      const re = new RegExp(
+        `${row.selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`,
+        'g'
+      );
+      const found = [...text.matchAll(re)];
+      // Aggregated per prop across every matched rule: a sibling rule that carries no size is
+      // legal, but a prop no matched rule declares has no floor, and that is a refusal.
+      let sized = false;
+      for (const m of found) {
+        const decl = new RegExp(`(^|[;\\s])${prop}:\\s*([^;}]+)`).exec(m[1]);
+        if (!decl) continue; // this matched rule may carry no size; that is legal.
+        sized = true;
+        const px = /^\s*([0-9.]+)px\s*$/.exec(decl[2]);
+        if (!px) {
+          failures.push({
+            path: row.file,
+            line: lineOf(file.text, m.index),
+            text: `${prop}: ${decl[2].trim()} is not a px value — the floor is judged in px`,
+          });
+        } else if (Number(px[1]) < floor) {
+          failures.push({
+            path: row.file,
+            line: lineOf(file.text, m.index),
+            text: `${row.selector} ${prop}: ${px[1]}px is under the ${floor}px touch floor`,
+          });
+        }
+      }
+      if (!sized) {
+        failures.push({
+          path: row.file,
+          line: 0,
+          text: `no rule for ${row.selector} declaring ${prop} — the control has no floor`,
+        });
+      }
+    }
+  }
+  return failures;
+}
+
+// WCAG 2.1 relative luminance and the ratio it defines. Re-derived here from the hexes rather than
+// copied from a report: the number this check prints is its own evidence, and a transcribed
+// constant would be a claim the guard cannot defend (Ruling AM applied to a check body).
+function srgbChannel(byte) {
+  const s = byte / 255;
+  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+function relativeLuminance(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return 0.2126 * srgbChannel(r) + 0.7152 * srgbChannel(g) + 0.0722 * srgbChannel(b);
+}
+
+export function contrastRatio(a, b) {
+  const [x, y] = [relativeLuminance(a), relativeLuminance(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+
+// Twelve rows: spec §2's six text pairs and six indicator pairs (§6.1's five token-derivable
+// grounds plus §6.2's fill ring at the band's ink end). §6.1's loyalty RUST end is carried in the
+// text group as `--cream-0` on `--rust-600` (5.37), and its hero-scrim row is absent on purpose:
+// a photograph under a scrim is not derivable from a hex (§10 names it, and §6.2's row is
+// labelled a proxy). No row is whitelisted: A-2 and A-3 are 2B's, which is what lets this check
+// arrive green by merit instead of by exception.
+//
+// A ground may be a bare hex when no token names it. Exactly one row does: #ffffff, the app
+// block's `--surface-raised`, which §4.4 keeps a literal on purpose and §7.2 keeps out of
+// `token drift` for the same reason. Naming a hex here is honest; adding a `--white` primitive
+// nothing reads would not be (spec §3.2 declares only what is read).
+export const CONTRAST_PAIRS = [
+  { kind: 'text', fg: '--ink-900', bg: '--cream-0', min: 4.5, why: 'headings on the app ground' },
+  { kind: 'text', fg: '--ink-700', bg: '--cream-0', min: 4.5, why: 'body copy on the app ground' },
+  { kind: 'text', fg: '--ink-700', bg: '--cream-50', min: 4.5,
+    why: 'body copy on the editorial ground' },
+  { kind: 'text', fg: '--cream-50', bg: '--hearth-950', min: 4.5, why: 'footer body copy' },
+  { kind: 'text', fg: '--cream-0', bg: '--rust-600', min: 4.5,
+    why: 'primary button label, and the band rust end' },
+  { kind: 'text', fg: '--cream-0', bg: '--open-600', min: 4.5, why: 'the open-now pill' },
+  { kind: 'ui', fg: '--rust-600', bg: '--cream-0', min: 3, why: 'focus ring on the app ground' },
+  { kind: 'ui', fg: '--rust-600', bg: '--cream-50', min: 3,
+    why: 'focus ring on the editorial ground' },
+  { kind: 'ui', fg: '--rust-600', bg: '#ffffff', min: 3, why: 'focus ring on a white field' },
+  { kind: 'ui', fg: '--rust-400', bg: '--hearth-950', min: 3,
+    why: 'dark-tone focus ring: the value the sheet ships today' },
+  { kind: 'ui', fg: '--cream-0', bg: '--ink-900', min: 3,
+    why: 'the fill ring at the band ink end' },
+  { kind: 'ui', fg: '--rust-400', bg: '--ink-900', min: 3,
+    why: 'dark-tone ring at the band ink end' },
+];
+
+export function findContrast(
+  primitiveText,
+  pairs = CONTRAST_PAIRS,
+  sourcePath = 'src/styles/tokens/1-primitive.css'
+) {
+  // A local, non-global validator. `HEX_RE` at the top of this file has the `g` flag, so `.test()`
+  // on it advances `lastIndex` and answers differently on the second call — a stateful helper
+  // would make one row's verdict depend on the row before it.
+  const HEX = /^#[0-9a-f]{6}$/;
+  const hexes = new Map();
+  for (const m of primitiveText.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    if (!hexes.has(m[1])) hexes.set(m[1], m[2].trim().toLowerCase());
+  }
+  const failures = [];
+  for (const row of pairs) {
+    const resolve = (ref) => (HEX.test(ref) ? ref : hexes.get(ref));
+    const [fg, bg] = [resolve(row.fg), resolve(row.bg)];
+    for (const [role, value, ref] of [
+      ['fg', fg, row.fg],
+      ['bg', bg, row.bg],
+    ]) {
+      if (!value) {
+        failures.push({
+          path: sourcePath,
+          line: 0,
+          text:
+            `${row.kind} pair ${row.fg} on ${row.bg} (${role}): ` +
+            `${ref} has no hex in the token file`,
+        });
+        continue;
+      }
+      if (!HEX.test(value)) {
+        failures.push({
+          path: sourcePath,
+          line: 0,
+          text: `${row.kind} pair ${row.fg} on ${row.bg} (${role}): unparsable ${value}`,
+        });
+      }
+    }
+    if (!fg || !bg) continue;
+    const ratio = contrastRatio(fg, bg);
+    if (ratio < row.min) {
+      const r = ratio.toFixed(4);
+      failures.push({
+        path: sourcePath,
+        line: 0,
+        text: `${row.kind} ${row.fg} on ${row.bg} = ${r}, under ${row.min} — ${row.why}`,
+      });
+    }
+  }
+  return failures;
+}
+
 // Nothing else in the guard reads global.css, so the declaration of what ships was invisible to
 // it: dropping an @import removed real CSS while every check stayed green, and an orphan slice on
 // disk fed findUndefinedTokens definitions that never ship - masking the exact bug class that
@@ -986,6 +1161,14 @@ function main() {
       () => findScopeParity(readSrc(cssFiles, 'src/styles/tokens/2-semantic.css')),
     ],
     ['scope declaration', () => findScopeDeclaration(pages)],
+    [
+      'touch targets',
+      () => findTouchTargets(cssFiles),
+    ],
+    [
+      'contrast',
+      () => findContrast(readSrc(cssFiles, 'src/styles/tokens/1-primitive.css')),
+    ],
   ];
   // The docs are gitignored, so a fresh clone must still build: guard the check on the file
   // rather than deleting it — a missing DESIGN.md must never read as zero drift. The absence is
