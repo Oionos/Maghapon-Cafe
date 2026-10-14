@@ -17,6 +17,11 @@ const {
   title = 'Maghapon Café — Filipino Afternoon Coffee Culture',
   description =
     'A coffee spot and communal space in Caloocan, Metro Manila. Coffee, matcha, pastries, and rice bowls — open 2 PM to 11 PM.',
+  // No default on purpose: an omitted `surface` renders `<html lang="en">` with no scope and the
+  // whole document silently falls back to `:root`. The Astro compiler cannot catch that — this
+  // component has no `interface Props` and `astro build` typechecks nothing — so `scope
+  // declaration` in scripts/guard.mjs reads the built HTML instead (spec §4.1, §9's correction 13).
+  surface,
 } = Astro.props;
 const isAdmin = Astro.url.pathname.startsWith('/admin');
 const path = Astro.url.pathname;
@@ -26,7 +31,7 @@ const isBooking = path === '/booking';
 const isOrders = path === '/my-orders';
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" data-surface={surface}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -51,6 +56,7 @@ const isOrders = path === '/my-orders';
         <div
           class="global-controls"
           id="global-controls"
+          data-surface="app"
           transition:persist="global-controls"
         >
           <span class="status-pill global-status" id="status-pill" role="status" aria-label="Shop status: Checking hours…" title="Checking hours…">
@@ -68,6 +74,7 @@ const isOrders = path === '/my-orders';
         class="nav-rail"
         id="nav-rail"
         aria-label="Site"
+        data-surface="app"
         transition:persist="nav-rail"
       >
         <a class="brand" href="/" aria-label="Maghapon Café home">
@@ -116,7 +123,7 @@ const isOrders = path === '/my-orders';
         )}
 
         <!-- Mobile compact top bar (≤767px): brand lockup; admin keeps its status pill. -->
-        <header class="mobile-topbar" transition:persist="mobile-topbar">
+        <header class="mobile-topbar" data-surface="app" transition:persist="mobile-topbar">
           <a class="brand" href="/" aria-label="Maghapon Café home">
             <Image src={logoImg} alt="Maghapon Café logo" width={32} priority />
             <span class="brand-copy">Maghapon Café</span>
@@ -135,7 +142,7 @@ const isOrders = path === '/my-orders';
           <slot />
         </main>
 
-        <footer class="site-footer">
+        <footer class="site-footer" data-surface="editorial" data-tone="dark">
           <div class="container">
             <div class="footer-grid">
               <div>
@@ -177,7 +184,7 @@ const isOrders = path === '/my-orders';
     </div>
 
     {!isAdmin && (
-      <nav class="tab-bar" aria-label="Primary" transition:persist="tab-bar">
+      <nav class="tab-bar" aria-label="Primary" data-surface="app" transition:persist="tab-bar">
         <a href="/" class={isHome ? 'is-active' : ''} aria-current={isHome ? 'page' : undefined}>
           <Icon name="house" size={22} />
           <span>Home</span>

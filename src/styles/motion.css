@@ -4,7 +4,8 @@
   opacity: 0;
   transform: translateY(24px) scale(0.98);
   filter: blur(6px);
-  transition: opacity 0.8s var(--ease), transform 0.8s var(--ease), filter 0.8s var(--ease);
+  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out),
+    filter 0.8s var(--ease-out);
   will-change: transform, opacity;
 }
 [data-reveal].revealed {

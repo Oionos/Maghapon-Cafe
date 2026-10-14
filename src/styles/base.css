@@ -11,9 +11,9 @@ html {
 body {
   position: relative;
   margin: 0;
-  background: var(--cream);
-  color: var(--ink);
-  font-family: var(--font-body);
+  background: var(--cream-50);
+  color: var(--ink-700);
+  font-family: var(--font-ui);
   font-size: 1rem;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
@@ -37,7 +37,7 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
-  color: var(--ink-deep);
+  color: var(--ink-900);
   line-height: 0.95;
   margin: 0 0 0.5em;
   font-weight: 700;
@@ -59,7 +59,7 @@ p {
   text-wrap: pretty;
 }
 a {
-  color: var(--rust);
+  color: var(--rust-600);
   text-decoration: none;
 }
 a:hover {
@@ -76,7 +76,7 @@ em {
   z-index: 1;
 }
 :focus-visible {
-  outline: 3px solid var(--rust-amber);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -89,8 +89,8 @@ em {
   left: 1rem;
   z-index: 1000;
   padding: 0.75rem 1.25rem;
-  background: var(--ink-deep);
-  color: var(--cream-bright);
+  background: var(--ink-900);
+  color: var(--cream-0);
   border-radius: 999px;
   font-weight: 700;
   text-decoration: none;

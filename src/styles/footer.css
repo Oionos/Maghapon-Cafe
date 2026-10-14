@@ -1,7 +1,7 @@
 /* file: footer.css */
 /* ---- Footer ---- */
 .site-footer {
-  background: var(--bg-dark);
+  background: var(--hearth-950);
   color: rgba(244, 239, 230, 0.8);
   padding: 3rem 0 1.6rem;
   margin-top: 2rem;
@@ -27,10 +27,10 @@
 .footer-brand strong {
   font-family: var(--font-display);
   font-size: 1.15rem;
-  color: var(--cream-bright);
+  color: var(--cream-0);
 }
 .site-footer h4 {
-  color: var(--rust-amber);
+  color: var(--rust-400);
   font-size: 0.95rem;
   letter-spacing: 0.06em;
 }
@@ -44,7 +44,7 @@
   font-size: 0.92rem;
 }
 .site-footer a {
-  color: var(--cream-bright);
+  color: var(--cream-0);
 }
 .footer-bottom {
   display: flex;

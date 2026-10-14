@@ -1,0 +1,60 @@
+/* file: tokens/2-semantic.css */
+/* ---- Tier 2 — surface scopes and tone refinements ----
+   Two grounds, one document default set by <html data-surface> at build time and up to eleven
+   self-declared overrides on one document — 49 `data-surface` attributes across the six
+   documents (spec §4.3). Eight is the `data-tone` count, not this one. An attribute selector
+   never matches by inheritance:
+   a compound `[data-surface][data-tone]` block applies only when BOTH attributes sit on the
+   same element, which is why the footer carries `data-surface="editorial"` on itself even
+   though four of the six documents are `app`. Getting that wrong is not a rendering curiosity:
+   the footer's focus ring drops from 6.77:1 to 3.46:1 on #1a0b02 while every other check stays
+   green (spec §9's correction 10). `scope declaration` (Task 9) refuses it: every `data-tone`
+   tag must carry `data-surface` on itself, read from the built documents. */
+[data-surface="editorial"] {
+  --surface: var(--cream-50);
+  --surface-raised: var(--cream-0);
+  --text-1: var(--ink-900);
+  --text-2: var(--ink-700);
+  --border: rgba(42, 18, 6, 0.10);
+  --radius-container: var(--r-xl);
+  --card-pad: var(--space-5);
+  --elev-card: var(--elev-float);
+  --dur-ui: 260ms;
+  --grain-opacity: 0.025;
+  --focus-ring: var(--rust-600);
+}
+
+[data-surface="app"] {
+  --surface: var(--cream-0);
+  /* A literal, not a token, exactly as parent §5.1 writes it. Whether white belongs on a cream
+     app ground is a brand decision, and it is 2B's (spec §10). */
+  --surface-raised: #ffffff;
+  --text-1: var(--ink-900);
+  --text-2: var(--ink-700);
+  --border: rgba(42, 18, 6, 0.14);
+  --border-ui: #94877f;
+  --radius-container: var(--r-lg);
+  --card-pad: var(--space-3);
+  --elev-card: var(--elev-hairline);
+  --dur-ui: 180ms;
+  --grain-opacity: 0;
+  --focus-ring: var(--rust-600);
+}
+
+/* Dark grounds keep today's ring hex: --rust-400 IS #d6873e, so a `dark` node is unchanged —
+   but only where the node self-declares the conjunction (spec §4.5). */
+[data-surface="editorial"][data-tone="dark"] {
+  --focus-ring: var(--rust-400);
+  --text-1: var(--cream-50);
+}
+
+/* The loyalty band is one gradient from --ink-900 to --rust-600, so its ring has to clear both
+   ends; --cream-0 measures 17.11 / 9.99 / 5.37 across ink -> midpoint -> rust (spec §6.2). */
+
+/* Load-bearing order: `fill` must stay last of these four blocks. `.loyalty-band` will carry
+   `editorial` and `fill` on one tag (Task 3), both selectors are 0-1-0 and both set
+   --focus-ring, so source order alone decides and `fill` wins. Nothing checks order inside
+   this file: a reorder here is silent and costs the band its ring. */
+[data-tone="fill"] {
+  --focus-ring: var(--cream-0);
+}

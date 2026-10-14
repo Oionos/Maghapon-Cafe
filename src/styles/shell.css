@@ -18,7 +18,7 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 1.25rem 1rem;
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border-right: 1px solid var(--line);
   overflow-y: auto;
 }
@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--ink-deep);
+  color: var(--ink-900);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;
@@ -45,10 +45,10 @@
 }
 .brand small {
   display: block;
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   font-size: 0.68rem;
   font-weight: 500;
-  color: var(--rust);
+  color: var(--rust-600);
   letter-spacing: 0.04em;
 }
 .rail-nav {
@@ -64,8 +64,8 @@
   min-height: 44px;
   padding: 0.6rem 1rem;
   border-radius: 999px;
-  color: var(--ink);
-  font-family: var(--font-body);
+  color: var(--ink-700);
+  font-family: var(--font-ui);
   font-size: 0.92rem;
   font-weight: 600;
   text-decoration: none;
@@ -83,12 +83,12 @@
 }
 .rail-nav a:hover {
   background: rgba(187, 61, 3, 0.08);
-  color: var(--ink-deep);
+  color: var(--ink-900);
   text-decoration: none;
 }
 .rail-nav a.is-active {
-  background: var(--cream-deep);
-  color: var(--ink-deep);
+  background: var(--cream-200);
+  color: var(--ink-900);
 }
 .rail-footer {
   display: none;
@@ -110,8 +110,8 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--ink);
-  font-family: var(--font-body);
+  color: var(--ink-700);
+  font-family: var(--font-ui);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -119,13 +119,13 @@
 }
 .rail-toggle:hover {
   background: rgba(187, 61, 3, 0.08);
-  color: var(--ink-deep);
+  color: var(--ink-900);
 }
 .rail-toggle-icon {
   flex: 0 0 22px;
   width: 22px;
   height: 22px;
-  transition: transform 0.25s var(--ease);
+  transition: transform 0.25s var(--ease-out);
 }
 .rail-collapsed .rail-toggle-icon {
   transform: rotate(180deg);
@@ -136,8 +136,8 @@
   gap: 0.45rem;
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--ink);
-  background: var(--cream-bright);
+  color: var(--ink-700);
+  background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0.35rem 0.8rem;
@@ -147,12 +147,12 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--open-600);
   box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.18);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 .status-pill.closed .status-dot {
-  background: var(--rust);
+  background: var(--rust-600);
   box-shadow: 0 0 0 3px rgba(187, 61, 3, 0.18);
 }
 .cart-btn {
@@ -164,14 +164,14 @@
   min-height: 44px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: var(--cream-bright);
+  background: var(--cream-0);
   cursor: pointer;
   font-size: 1.1rem;
-  transition: transform 0.2s var(--ease), background 0.2s;
+  transition: transform 0.2s var(--ease-out), background 0.2s;
 }
 .cart-btn:hover {
-  background: var(--cream);
-  box-shadow: var(--shadow);
+  background: var(--cream-50);
+  box-shadow: var(--tmp-shadow-card);
 }
 .cart-count {
   position: absolute;
@@ -181,8 +181,8 @@
   height: 20px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--rust);
-  color: var(--cream-bright);
+  background: var(--rust-600);
+  color: var(--cream-0);
   font-size: 0.72rem;
   font-weight: 700;
   display: inline-flex;
@@ -204,12 +204,12 @@
   gap: 0.7rem;
   min-height: var(--header-h);
   padding: 0 clamp(1rem, 4vw, 2rem);
-  background: rgba(224, 224, 224, 0.92);
+  background: rgba(var(--tmp-chrome-glass-rgb), 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
 .toolbar-status {
-  background: var(--cream-bright);
+  background: var(--cream-0);
 }
 
 /* ---- Floating global controls: shop status + single order trigger, top-right, all widths ---- */
@@ -223,7 +223,7 @@
   gap: 0.6rem;
 }
 .global-controls .status-pill {
-  box-shadow: var(--shadow);
+  box-shadow: var(--tmp-shadow-card);
 }
 .global-controls .cart-btn {
   box-shadow: 0 4px 14px rgba(64, 0, 0, 0.14);
@@ -240,7 +240,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0 1rem;
-  background: rgba(224, 224, 224, 0.92);
+  background: rgba(var(--tmp-chrome-glass-rgb), 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -284,19 +284,19 @@
   padding: 0.4rem 0.25rem;
   background: none;
   border: none;
-  color: var(--ink);
-  font-family: var(--font-body);
+  color: var(--ink-700);
+  font-family: var(--font-ui);
   font-size: 0.68rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
 }
 .tab-bar a:hover {
-  color: var(--rust);
+  color: var(--rust-600);
   text-decoration: none;
 }
 .tab-bar .is-active {
-  color: var(--rust);
+  color: var(--rust-600);
 }
 .tab-bar svg {
   width: 22px;
@@ -319,12 +319,12 @@
   transform: translate(-50%, 8px);
   padding: 0.6rem 1rem;
   border-radius: 999px;
-  background: var(--ink);
-  color: var(--cream-bright);
+  background: var(--ink-700);
+  color: var(--cream-0);
   font-size: 0.85rem;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
   z-index: 70;
 }
 .back-toast.show {

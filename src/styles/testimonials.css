@@ -7,14 +7,14 @@
 }
 .testimonial-card {
   position: relative;
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--tmp-radius-container);
   padding: 1.6rem;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  transition: transform 0.7s var(--ease), box-shadow 0.7s var(--ease), border-color 0.7s var(--ease);
+  transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
   border-radius: 20px;
 }
 .testimonial-card::after {
@@ -24,7 +24,7 @@
   bottom: -10px;
   width: 20px;
   height: 20px;
-  background: var(--cream-bright);
+  background: var(--cream-0);
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   border-radius: 0 0 4px 0;
@@ -32,15 +32,15 @@
 }
 .testimonial-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lift);
-  border-color: var(--line-strong);
+  box-shadow: var(--elev-float);
+  border-color: var(--tmp-line-strong);
 }
 .testimonial-card blockquote {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.05rem;
   line-height: 1.6;
-  color: var(--ink-deep);
+  color: var(--ink-900);
   flex: 1;
   text-wrap: pretty;
 }
@@ -50,12 +50,12 @@
   font-family: var(--font-display);
   font-size: 2rem;
   line-height: 0.6;
-  color: var(--rust-amber);
+  color: var(--rust-400);
   margin-bottom: 0.55rem;
 }
 .testimonial-card figcaption {
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--rust);
+  color: var(--rust-600);
 }

@@ -16,7 +16,7 @@
   inset: 0;
   background: rgba(42, 18, 6, 0.55);
   opacity: 0;
-  transition: opacity 0.3s var(--ease);
+  transition: opacity 0.3s var(--ease-out);
 }
 .drawer.open .drawer-scrim {
   opacity: 1;
@@ -27,11 +27,11 @@
   right: 0;
   height: 100%;
   width: min(420px, 100%);
-  background: var(--cream-bright);
+  background: var(--cream-0);
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform 0.35s var(--ease);
+  transition: transform 0.35s var(--ease-out);
   box-shadow: -20px 0 50px rgba(42, 18, 6, 0.3);
 }
 .drawer.open .drawer-panel {
@@ -54,11 +54,11 @@
   min-height: 44px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: var(--cream);
+  background: var(--cream-50);
   font-size: 1.3rem;
   line-height: 1;
   cursor: pointer;
-  color: var(--ink);
+  color: var(--ink-700);
   transition: transform 160ms var(--ease-out);
 }
 .drawer-body {
@@ -83,7 +83,7 @@
   margin: 0 auto;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid var(--rust);
+  border: 2px solid var(--rust-600);
   box-shadow: 0 10px 24px rgba(64, 0, 0, 0.18);
 }
 .empty-owl img {
@@ -109,9 +109,9 @@
 .config-avatar {
   flex: 0 0 56px;
   height: 56px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--rust), var(--rust-amber));
-  color: var(--cream-bright);
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, var(--rust-600), var(--rust-400));
+  color: var(--cream-0);
   font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 700;
@@ -129,7 +129,7 @@
 }
 .opt-group {
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   padding: 0.9rem 1rem;
   margin: 0;
 }
@@ -138,7 +138,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--rust);
+  color: var(--rust-600);
   padding: 0 0.4rem;
 }
 .opt-list {
@@ -151,7 +151,7 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0.6rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   cursor: pointer;
   font-size: 0.92rem;
 }
@@ -161,12 +161,12 @@
 .opt input {
   width: 18px;
   height: 18px;
-  accent-color: var(--rust);
+  accent-color: var(--rust-600);
 }
 .opt-price {
   margin-left: auto;
   font-weight: 600;
-  color: var(--ink-deep);
+  color: var(--ink-900);
 }
 /* Pill option selectors — single-select size/milk variants in the config sheet */
 .opt-list--pills {
@@ -183,28 +183,28 @@
   padding: 0.5rem 1.1rem;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--cream-bright);
-  color: var(--ink);
-  font-family: var(--font-body);
+  background: var(--cream-0);
+  color: var(--ink-700);
+  font-family: var(--font-ui);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s var(--ease), color 0.2s, border-color 0.2s, transform 0.2s var(--ease);
+  transition: background 0.2s var(--ease-out), color 0.2s, border-color 0.2s, transform 0.2s var(--ease-out);
 }
 .opt-pill:hover {
   background: rgba(187, 61, 3, 0.08);
 }
 .opt-pill:has(input:checked) {
-  background: var(--rust);
-  border-color: var(--rust);
-  color: var(--cream-bright);
+  background: var(--rust-600);
+  border-color: var(--rust-600);
+  color: var(--cream-0);
 }
 .opt-pill-price {
   font-weight: 700;
-  color: var(--ink-deep);
+  color: var(--ink-900);
 }
 .opt-pill:has(input:checked) .opt-pill-price {
-  color: var(--cream-bright);
+  color: var(--cream-0);
 }
 .opt-pill input {
   position: absolute;
@@ -217,7 +217,7 @@
   outline: none;
 }
 .opt-pill:has(input:focus-visible) {
-  outline: 3px solid var(--rust-amber);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .qty-row {
@@ -231,10 +231,10 @@
   min-height: 44px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: var(--cream);
+  background: var(--cream-50);
   font-size: 1.2rem;
   cursor: pointer;
-  color: var(--ink);
+  color: var(--ink-700);
   transition: transform 160ms var(--ease-out);
 }
 .qty-val {
@@ -243,7 +243,7 @@
   font-weight: 700;
   min-width: 2ch;
   text-align: center;
-  color: var(--ink-deep);
+  color: var(--ink-900);
 }
 
 /* cart lines */
@@ -258,7 +258,7 @@
 }
 .cart-line-name {
   font-weight: 600;
-  color: var(--ink-deep);
+  color: var(--ink-900);
 }
 .cart-line-detail {
   font-size: 0.8rem;
@@ -271,14 +271,14 @@
   gap: 0.5rem;
 }
 .cart-line-qty button {
-  min-width: 34px;
-  min-height: 34px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: var(--cream);
+  background: var(--cream-50);
   cursor: pointer;
   font-size: 1rem;
-  color: var(--ink);
+  color: var(--ink-700);
 }
 .cart-line-qty span {
   min-width: 1.6ch;
@@ -289,7 +289,7 @@
   margin-left: 0.4rem;
   border: none;
   background: none;
-  color: var(--rust);
+  color: var(--rust-600);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -297,7 +297,7 @@
 }
 .cart-line-price {
   font-weight: 700;
-  color: var(--ink-deep);
+  color: var(--ink-900);
   white-space: nowrap;
 }
 .cart-total {
@@ -310,13 +310,13 @@
 .cart-total b {
   font-family: var(--font-display);
   font-size: 1.4rem;
-  color: var(--rust);
+  color: var(--rust-600);
 }
 
 /* checkout */
 .checkout-summary {
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -339,7 +339,7 @@
   height: 64px;
   margin: 1rem auto 0.6rem;
   border-radius: 50%;
-  background: var(--matcha);
+  background: var(--matcha-600);
   color: #f6f8ef;
   font-size: 2rem;
   font-weight: 700;
@@ -352,7 +352,7 @@
   font-family: var(--font-display);
   font-size: 1.9rem;
   font-weight: 700;
-  color: var(--ink-deep);
+  color: var(--ink-900);
   letter-spacing: 0.06em;
 }
 .done-copy {

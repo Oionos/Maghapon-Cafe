@@ -5,7 +5,7 @@ import heroImg from '../assets/hero.webp';
 
 const { compact = false } = Astro.props;
 ---
-<section class={compact ? 'hero hero-compact' : 'hero'}>
+<section class={compact ? 'hero hero-compact' : 'hero'} data-surface="editorial" data-tone="dark">
   <Image
     class="hero-bg"
     src={heroImg}

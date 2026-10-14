@@ -1,0 +1,46 @@
+/* file: tokens/1-primitive.css */
+/* ---- Tier 1 — primitives: brand colour, type, and the §4.3 scale steps 2A reads ----
+   Named by parent spec §4.2's renames. No component reads a primitive for its meaning in
+   an app surface; that is tier 2's job (2-semantic.css) and it arrives in 2B's migration.
+   Declared here because a token with no consumer is a dead declaration. The label-named
+   `undefined token` check is live and does read this file -- but it reports only `var()` uses with
+   no definition, so an unread declaration here can never trip it. */
+:root {
+  /* Brand colour (§4.2 renames at their existing hexes, plus the two new steps). */
+  --rust-600: #bb3d03;
+  --rust-400: #d6873e;
+  --cream-50: #f4efe6;
+  --cream-0: #fdfbf7;
+  --cream-200: #d3cbbd;
+  --ink-700: #602000;
+  --ink-900: #2a1206;
+  --matcha-600: #6b8f2e;
+  --matcha-700: #5c7c25;
+  --clay-300: #c0a080;
+  --hearth-950: #1a0b02;
+  --open-600: #2e7d32;
+  --border-ui: #94877f;
+
+  /* Kept primitives — `--line`, `--line-light`, `--font-display`, `--container`, `--header-h`
+     and `--ease-out` carried their values from the deleted legacy root. `--font-ui` is the new
+     name that replaced legacy `--font-body` in Task 5's rename sweep: 0 reads of the old name
+     remain. */
+  --line: rgba(42, 18, 6, 0.10);
+  --line-light: rgba(253, 251, 247, 0.12);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-ui: 'Geist Variable', system-ui, sans-serif;
+  --container: 1280px;
+  --header-h: 64px;
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Scale steps (§4.3) with a 2A consumer. --r-xs/-sm/-pill, --space-1/-2/-4/-6/-7/-8,
+     --elev-none/-layer and the --t-* tiers arrive with their first reader or not at all;
+     see spec §3.2 and §9's corrections 8 and 11. */
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --space-3: 12px;
+  --space-5: 24px;
+  --elev-hairline: 0 1px 2px rgba(42, 18, 6, 0.06);
+  --elev-float: 0 24px 56px rgba(42, 18, 6, 0.14);
+}
