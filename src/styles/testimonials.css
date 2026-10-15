@@ -9,13 +9,12 @@
   position: relative;
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
   padding: 1.6rem;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
   transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
-  border-radius: 20px;
+  border-radius: var(--r-xl);
 }
 .testimonial-card::after {
   content: "";

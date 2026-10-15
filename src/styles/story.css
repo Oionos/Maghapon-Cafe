@@ -139,7 +139,7 @@
   margin: 1.5rem 0 2rem;
   padding: 2rem;
   border: 1px dashed var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   background: var(--cream-0);
   text-align: center;
   opacity: 0.85;
@@ -227,7 +227,7 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--r-xl);
   box-shadow: var(--tmp-shadow-card);
 }
 .story-copy p {
@@ -263,7 +263,7 @@
 .info-card {
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--r-xl);
   padding: 1.6rem;
   transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
   will-change: transform;

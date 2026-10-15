@@ -50,7 +50,7 @@
 .order-card {
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   padding: 1.3rem 1.4rem;
   margin-bottom: 1.2rem;
 }
@@ -135,7 +135,7 @@
 .admin-empty {
   background: var(--cream-0);
   border: 1px dashed var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   padding: 2rem;
   text-align: center;
   opacity: 0.8;

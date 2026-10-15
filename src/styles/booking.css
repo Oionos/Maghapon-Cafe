@@ -10,13 +10,13 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   box-shadow: var(--tmp-shadow-card);
 }
 .form-card {
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   padding: 1.5rem;
   margin-top: 1.4rem;
 }
@@ -101,7 +101,7 @@
   gap: 1.6rem;
   align-items: center;
   background: linear-gradient(120deg, var(--ink-900) 0%, var(--rust-600) 100%);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--r-xl);
   padding: clamp(1.8rem, 5vw, 3rem);
   color: var(--cream-0);
 }

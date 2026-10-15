@@ -50,7 +50,7 @@
 .off-menu-note {
   margin: 3rem 0 4rem;
   padding: 1.6rem 1.8rem;
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   background: var(--matcha-600);
   color: #f6f8ef;
 }

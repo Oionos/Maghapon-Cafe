@@ -5,7 +5,7 @@
   flex-direction: column;
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   overflow: hidden;
   transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
   will-change: transform;
@@ -125,7 +125,7 @@
 
 /* ---- Compact menu card (landing ordering grid) ---- */
 .menu-card-compact {
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   box-shadow: 0 3px 12px rgba(64, 0, 0, 0.07);
   border: 1px solid var(--line);
   background: var(--cream-0);
@@ -135,7 +135,7 @@
 }
 .menu-card-compact .menu-card-media {
   aspect-ratio: 1 / 1;
-  border-radius: var(--tmp-radius-container) var(--tmp-radius-container) 0 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
   overflow: hidden;
   background: linear-gradient(135deg, var(--rust-600) 0%, var(--rust-400) 100%);
 }
