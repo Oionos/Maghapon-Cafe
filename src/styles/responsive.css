@@ -25,6 +25,23 @@
     scroll-margin-top: var(--header-h);
   }
 }
+
+/* F-9C-1 — the two-column booking pair is deferred past this band. The 220px rail leaves the
+   column ~471px at a 768px viewport, while `.booking-grid`'s measured min-content is
+   617.016px (the form card's 517.188px + the 2.4rem gap + the container padding) and the
+   pair only fits from a 855px viewport, so it overflowed `/booking` by 53px. The fields give
+   up their intrinsic width so the single column fits too. Scoped to `.booking-grid`:
+   `.form-grid` is shared with the cart drawer (CartDrawer.astro:258) and the cart panel
+   (CartPanel.astro:123), which must not change here. */
+@media (min-width: 768px) and (max-width: 854px) {
+  .booking-grid {
+    grid-template-columns: 1fr;
+  }
+  .booking-grid .form-grid > * {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 767px) {
   .app-shell {
     grid-template-columns: 1fr;
