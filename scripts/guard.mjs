@@ -977,6 +977,471 @@ export function findContrast(
   return failures;
 }
 
+// Task 13 check 1 — `tmp deletion`. 2B's scaffolding had two shapes: `--tmp-*` names (§3.3
+// deletes them) and the `3-transitional.css` slice (Task 12 deleted it). Either reappearing in the
+// authored tree is a regression, and neither has another owner here: `undefined token` can only
+// report a read of a name no shipping file declares, so a name nothing reads yet sails past it,
+// and an orphan slice declares what nothing ships. Comments are stripped first — a commented-out
+// name is not a name, the same boundary every predicate in this file reads through. The limit is
+// the scan's horizon: it reads authored text under `src/styles/` (the walked corpus, tests are
+// deliberately not in it — the three `3-transitional` path strings the fixtures carry are
+// survivors, not hits), not the cascade and not the build, so a name arriving from anywhere else
+// is invisible to it.
+export const TMP_SCANS = [
+  { needle: '--tmp-', why: '§3.3 deleted the transitional names' },
+  { needle: '3-transitional', why: '2B Task 12 deleted the transitional slice' },
+];
+
+export function findTmpDeletion(cssFiles, scans = TMP_SCANS) {
+  const failures = [];
+  for (const file of cssFiles) {
+    const clean = stripComments(file.text);
+    for (const { needle, why } of scans) {
+      let at = clean.indexOf(needle);
+      while (at !== -1) {
+        failures.push({
+          path: file.path,
+          line: lineOf(file.text, at),
+          text: `${needle} reappears — ${why}`,
+        });
+        at = clean.indexOf(needle, at + needle.length);
+      }
+    }
+  }
+  return failures;
+}
+
+// Every custom-property declaration in the walked corpus, comments stripped, as occurrences in
+// file order plus a first-wins name map. The map is the M-8 convention Task 8's size lookup uses:
+// a later duplicate of a name is judged by the value a reader resolves first, so the map — not
+// the last declaration — is what a target resolves through. Shared by `indirection` and
+// `translucency cap`, the two checks that resolve a declared name to its value.
+function customPropertyDecls(cssFiles) {
+  const decls = [];
+  const first = new Map();
+  for (const file of cssFiles) {
+    const clean = stripComments(file.text);
+    for (const m of clean.matchAll(/(--[\w-]+)\s*:\s*([^;}]+);/g)) {
+      const value = m[2].trim();
+      decls.push({ path: file.path, raw: file.text, index: m.index, name: m[1], value });
+      if (!first.has(m[1])) first.set(m[1], value);
+    }
+  }
+  return { decls, first };
+}
+
+// Task 13 check 2 — `indirection`. 2B's semantic names land on primitive literals: a declaration
+// whose whole value is a bare `var(--name)` (no fallback) is one hop, and one hop is the shape
+// every converted site has. A target whose own value is itself a bare var() is a second hop — a
+// chain, or a cycle — and that is where a reader chasing the value to a literal stops being able
+// to. `--elev-sheet: var(--elev-float)` is the canonical accept: its target is a tier-1 literal.
+// Resolution reads the FIRST declaration of the target's name (the M-8 convention above), so a
+// later duplicate cannot change a verdict the first declaration already settled. Two limits are
+// named here: a literal re-introduced at a previously converted site is invisible to this check
+// (`token drift` and `alias absence` own value shapes, not declaration shapes), and a target no
+// shipping file declares is silent on purpose — a dangling read is `undefined token`'s finding.
+export function findIndirection(cssFiles) {
+  const { decls, first } = customPropertyDecls(cssFiles);
+  // A local, non-global pattern: `.test` on a global regex would carry `lastIndex` between rows
+  // (the same statefulness `findContrast`'s local HEX comment describes).
+  const BARE_VAR = /^var\(\s*(--[\w-]+)\s*\)$/;
+  const failures = [];
+  for (const d of decls) {
+    const hop = BARE_VAR.exec(d.value);
+    if (!hop) continue;
+    const target = first.get(hop[1]);
+    if (target === undefined) continue;
+    if (BARE_VAR.test(target)) {
+      failures.push({
+        path: d.path,
+        line: lineOf(d.raw, d.index),
+        text: `${d.name}: ${d.value} — ${hop[1]} is itself a bare var(); one hop only`,
+      });
+    }
+  }
+  return failures;
+}
+
+// A value resolved through the first-wins map until it is a literal. A dangling hop (a name no
+// declaration provides) and the depth bound (which a cycle never escapes) both return undefined —
+// the same "cannot be certified" answer, since neither ever lands on a literal. The bound is a
+// stop for cycles, not a second indirection rule: `indirection` already refuses chains at one
+// hop, so on a tree that passes that check the first hop always lands.
+function resolveThrough(first, value, depth = 4) {
+  let v = value;
+  for (let i = 0; i < depth; i += 1) {
+    const hop = /^var\(\s*(--[\w-]+)\s*\)$/.exec(v);
+    if (!hop) return v;
+    const next = first.get(hop[1]);
+    if (next === undefined) return undefined;
+    v = next;
+  }
+  return undefined;
+}
+
+// The rule an offset sits inside, as { selector, declarations }. The enclosing `{` is the nearest
+// one before the offset, and the prelude runs from the nearest brace-or-close before that `{` —
+// so a rule nested in an at-rule reports its own selector, never the at-rule's prelude. The
+// selector is whitespace-normalised here because authored selectors wrap lines (`.field input,\n
+// .field select`), and a matcher that kept the newline would never equal a one-line table row.
+function ruleAt(text, index) {
+  const open = text.lastIndexOf('{', index);
+  if (open === -1) return null;
+  const prev = Math.max(text.lastIndexOf('}', open - 1), text.lastIndexOf('{', open - 1));
+  return {
+    selector: text.slice(prev + 1, open).trim().replace(/\s+/g, ' '),
+    declarations: balancedBody(text, open),
+  };
+}
+
+// The alpha a resolved background declares: a 6-digit hex or rgb() is opaque, rgba() carries its
+// own. Anything else (a modern colour function, a named colour) returns undefined and the caller
+// refuses rather than certifying a number it did not compute — the floor is enforced by the
+// printed value or not at all.
+function glassAlpha(value) {
+  if (/^#[0-9a-f]{6}$/i.test(value)) return 1;
+  if (/^rgb\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*\)$/i.test(value)) return 1;
+  const rgba = /^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/i.exec(value);
+  return rgba ? Number(rgba[1]) : undefined;
+}
+
+// Task 13 check 3 — `translucency cap`. §6.2 ships exactly two glass elements and keeps their
+// blur behind a nearly opaque fill; under a reduce-transparency request the chrome goes opaque
+// and blurless. Four arms, all read from declarations: the count of non-`none` declarations is
+// capped at the pair's own size; every such declaration's selector is a pair member; every glass
+// rule's resolved `background` alpha clears the floor; and a reduce block must stop each pair
+// member that blurs. The media test accepts the bare feature form exactly as `reducedMotionBlocks`
+// does — a correct file must not be refused — and never `no-preference`. The limits: this reads
+// declarations, not the resolved cascade, so an alpha arriving through a shorthand or a composite
+// is invisible; the property read is the unprefixed `backdrop-filter`; and Ruling X's boundary
+// holds because every scan reads the stripped text (a commented-out declaration is not one).
+export const GLASS_SELECTORS = ['.mobile-topbar', '.tab-bar'];
+export const GLASS_ALPHA_FLOOR = 0.92;
+
+export function findTranslucencyCap(
+  cssFiles,
+  selectors = GLASS_SELECTORS,
+  alphaFloor = GLASS_ALPHA_FLOOR
+) {
+  const failures = [];
+  const { first } = customPropertyDecls(cssFiles);
+  // The stops, collected corpus-wide first: a pair member that blurs anywhere in the walked set
+  // must be stopped by a reduce block anywhere in it — the check reads the sheet's declarations,
+  // and a stop split from its glass across two files still stops it in the browser.
+  const stopped = new Set();
+  const reduceOpen = /@media[^{]*\(\s*prefers-reduced-transparency\s*(?::\s*reduce\s*)?\)[^{]*\{/g;
+  for (const file of cssFiles) {
+    const clean = stripComments(file.text);
+    for (const m of clean.matchAll(reduceOpen)) {
+      const body = balancedBody(clean, m.index + m[0].length - 1);
+      for (const rule of rulesIn(body)) {
+        if (!/(^|[;\s])backdrop-filter\s*:\s*none\b/.test(rule.declarations)) continue;
+        for (const part of rule.selector.split(',').map((s) => s.trim())) stopped.add(part);
+      }
+    }
+  }
+  const glass = [];
+  for (const file of cssFiles) {
+    const clean = stripComments(file.text);
+    for (const m of clean.matchAll(/(^|[;\s])backdrop-filter\s*:\s*([^;}]+)/g)) {
+      const value = m[2].trim();
+      if (value === 'none') continue; // the stop form; the reduce arm below is what reads stops.
+      const line = lineOf(file.text, m.index);
+      const rule = ruleAt(clean, m.index + m[1].length);
+      const parts = rule ? rule.selector.split(',').map((s) => s.trim()).filter(Boolean) : [];
+      glass.push({ path: file.path, line, parts });
+      for (const part of parts) {
+        if (!selectors.includes(part)) {
+          failures.push({
+            path: file.path,
+            line,
+            text: `glass on ${part} — §6.2 keeps blur on ${selectors.join(' and ')} only`,
+          });
+        }
+      }
+      const bg = rule ? /(^|[;\s])background\s*:\s*([^;}]+)/.exec(rule.declarations) : null;
+      if (!bg) {
+        failures.push({
+          path: file.path,
+          line,
+          text: `glass on ${rule ? rule.selector : '?'} declares no background — no alpha to certify`,
+        });
+        continue;
+      }
+      const raw = bg[2].trim();
+      const resolved = resolveThrough(first, raw);
+      const alpha = resolved === undefined ? undefined : glassAlpha(resolved);
+      if (alpha === undefined) {
+        failures.push({
+          path: file.path,
+          line,
+          text:
+            `glass background ${raw}${resolved === undefined || resolved === raw ? '' : ` → ${resolved}`}` +
+            ` has no readable alpha — the ${alphaFloor} floor cannot be certified`,
+        });
+      } else if (alpha < alphaFloor) {
+        failures.push({
+          path: file.path,
+          line,
+          text: `glass background ${raw} alpha ${alpha} is under the ${alphaFloor} floor`,
+        });
+      }
+    }
+  }
+  if (glass.length > selectors.length) {
+    const last = glass[glass.length - 1];
+    failures.push({
+      path: last.path,
+      line: last.line,
+      text: `${glass.length} glass declarations — the cap is ${selectors.length} (§6.2)`,
+    });
+  }
+  for (const sel of selectors) {
+    const site = glass.find((g) => g.parts.includes(sel));
+    if (site && !stopped.has(sel)) {
+      failures.push({
+        path: site.path,
+        line: site.line,
+        text: `no prefers-reduced-transparency: reduce block stops ${sel}`,
+      });
+    }
+  }
+  return failures;
+}
+
+// Task 13 check 4 — `contrast floor`. §6.4's matcha landing: `--matcha-700` is the text end and
+// reads on both app grounds and the fill direction; `--matcha-600` is a fill and a border and is
+// never text; and one exception survives on its own floor — `.done-icon`'s large text (2rem/700)
+// on the matcha-600 fill, judged at the large-text floor rather than the body floor. The floors
+// are named constants and every refusal prints the ratio this check computed (Ruling AM applied
+// to a check body: a transcribed number would be a claim the guard cannot defend). The border
+// rows are Task 8's D13 3-site set, frozen: three field borders on `--border-ui` read across
+// their declared grounds in the same direction the sites render. The census and the two refusal
+// scans are the parts a ratio table cannot see: where the wash hexes live, and the two cascade
+// shapes §6.4 bans by name (`matcha-600` as a text colour, `matcha-700` as text over the
+// editorial `--cream-50`). The limits, named: every judgement reads declared values, not the
+// resolved cascade (the M-DUP boundary carried from 2A), so `.my-status.done`'s text (4.0061)
+// over its rgba(.14) tint is invisible here — Task 9's M-1, carried with the fix out of scope —
+// and a value arriving through a shorthand or an inheritance is invisible for the same reason.
+export const TEXT_FLOOR = 4.5;
+export const LARGE_TEXT_FLOOR = 3;
+export const BORDER_FLOOR = 3;
+
+export const MATCHA_ROWS = [
+  { kind: 'text', fg: '--matcha-700', bg: '--cream-0', min: TEXT_FLOOR,
+    why: '§6.4: matcha-700 text on the app ground' },
+  { kind: 'text', fg: '--matcha-700', bg: '--paper', min: TEXT_FLOOR,
+    why: '§6.4: matcha-700 text on the paper card fill' },
+  { kind: 'text', fg: '--cream-0', bg: '--matcha-700', min: TEXT_FLOOR,
+    why: '§6.4 fill direction: the cream-0 label on a matcha-700 fill' },
+  { kind: 'large', fg: '#f6f8ef', bg: '--matcha-600', min: LARGE_TEXT_FLOOR,
+    why: '§6.4 exception: .done-icon large text on matcha-600 only' },
+  { kind: 'border', fg: '--border-ui', bg: '--cream-0', min: BORDER_FLOOR,
+    why: 'D13 site booking.css:43 — field border on cream-0' },
+  { kind: 'border', fg: '--border-ui', bg: '--paper', min: BORDER_FLOOR,
+    why: 'D13 site cart-drawer.css:184 — opt-pill border on paper' },
+  { kind: 'border', fg: '--border-ui', bg: '--cream-50', min: BORDER_FLOOR,
+    why: 'D13 site story.css:46 — search-input border on cream-50' },
+];
+
+export const MATCHA_CENSUS = [
+  { hex: '#eef3dc', count: 0, why: '§6.4 removed the wash — it must not return' },
+  { hex: '#f6f8ef', count: 1, why: '§6.4 keeps it only for .done-icon large text' },
+];
+
+export function findContrastFloor(
+  primitiveText,
+  cssFiles,
+  rows = MATCHA_ROWS,
+  census = MATCHA_CENSUS
+) {
+  const failures = findContrast(primitiveText, rows);
+  for (const row of census) {
+    let n = 0;
+    let where = null;
+    for (const file of cssFiles) {
+      const clean = stripComments(file.text);
+      for (const m of clean.matchAll(new RegExp(row.hex, 'gi'))) {
+        n += 1;
+        if (!where) where = { path: file.path, line: lineOf(file.text, m.index) };
+      }
+    }
+    if (n !== row.count) {
+      failures.push({
+        // A count of zero has no line to point at; the site that grew one does.
+        path: where ? where.path : cssFiles.length ? cssFiles[0].path : 'src/styles/',
+        line: where ? where.line : 0,
+        text: `${row.hex}: expected ${row.count}, found ${n} — ${row.why}`,
+      });
+    }
+  }
+  // The two refusal scans read declaration shapes a ratio row cannot hold a site for. The `color`
+  // boundary is `(^|[;{\s])`, so `background-color`, `outline-color` and friends are different
+  // properties and stay out — only the text colour is judged, which is the §6.4 rule's own scope.
+  const M600_TEXT = /var\(\s*--matcha-600\s*[,)]/;
+  const M700_TEXT = /var\(\s*--matcha-700\s*[,)]/;
+  const CREAM_50 = /var\(\s*--cream-50\s*[,)]/;
+  for (const file of cssFiles) {
+    const clean = stripComments(file.text);
+    for (const m of clean.matchAll(/(^|[;{\s])color\s*:\s*([^;}]+)/g)) {
+      const value = m[2].trim();
+      if (M600_TEXT.test(value)) {
+        failures.push({
+          path: file.path,
+          line: lineOf(file.text, m.index),
+          text: `color: ${value} — §6.4: matcha-600 is never text`,
+        });
+      }
+      if (!M700_TEXT.test(value)) continue;
+      const rule = ruleAt(clean, m.index + m[1].length);
+      const bg = rule ? /(^|[;\s])background\s*:\s*([^;}]+)/.exec(rule.declarations) : null;
+      const bgValue = bg ? bg[2].trim() : '';
+      if (bg && CREAM_50.test(bgValue)) {
+        failures.push({
+          path: file.path,
+          line: lineOf(file.text, m.index),
+          text:
+            `color: ${value} over background: ${bgValue} — ` +
+            `§6.4: matcha-700 is never text on the editorial wash`,
+        });
+      }
+    }
+  }
+  return failures;
+}
+
+// Task 13 check 5 — `control floor`. Task 8's conversion moved the controls onto `--control-h`
+// and left one deliberate literal (`.loyalty-form input`'s 46px, the D14 reversal). The check
+// keeps both halves honest: the token's own declarations must clear `TOUCH_FLOOR` — the binding
+// arm, cure for Task 8's parked M-1, where a token declared under 44 would have satisfied every
+// reader while shipping small controls — and every declared control row must still carry a floor
+// of its own, as a `<n>px` value at or over the floor or the token read exactly. Two row shapes
+// are refused by name: `var(--control-h, 44px)`, because a fallback makes the declared value
+// optional (Task 8's M-3, plan-mandated), and any other non-px value, because a spacing token is
+// not a control height (the reason `findTouchTargets` already names). The four allowlist rows are
+// asserted to exist and not judged: they are the non-control `min-height` sites — shell geometry
+// and the header height — and their values are deliberately not this check's business. The limits
+// are the declared-table idiom itself: the table is what is read, so a control site absent from
+// it is invisible (the edit is the reviewable act, exactly as `TOUCH_TARGETS` says), and a
+// breakpoint copy of a row is judged by its first declaration (Task 8's M-4). Reusing
+// `TOUCH_FLOOR` rather than re-literalling 44 is the point: the two floors are one number.
+export const CONTROL_FLOOR_ROWS = [
+  // The 15 reads of `--control-h` across the shipped slices, then the one declared literal.
+  { file: 'src/styles/booking.css', selector: '.field input, .field select' },
+  { file: 'src/styles/booking.css', selector: '.loyalty-form input' },
+  { file: 'src/styles/button.css', selector: '.btn' },
+  { file: 'src/styles/button.css', selector: '.btn-sm' },
+  { file: 'src/styles/cart-drawer.css', selector: '.drawer-close' },
+  { file: 'src/styles/cart-drawer.css', selector: '.opt-pill' },
+  { file: 'src/styles/cart-drawer.css', selector: '.qty-btn' },
+  { file: 'src/styles/cart-drawer.css', selector: '.cart-line-qty button' },
+  { file: 'src/styles/menu-card.css', selector: '.tab-btn' },
+  { file: 'src/styles/responsive.css', selector: '.cart-panel .cart-line-qty button' },
+  { file: 'src/styles/shell.css', selector: '.rail-nav a' },
+  { file: 'src/styles/shell.css', selector: '.rail-toggle' },
+  { file: 'src/styles/shell.css', selector: '.cart-btn' },
+  { file: 'src/styles/shell.css', selector: '.tab-bar a, .tab-bar button' },
+  { file: 'src/styles/story.css', selector: '.search-input' },
+  { file: 'src/styles/story.css', selector: '.chip' },
+];
+
+export const CONTROL_ALLOW_ROWS = [
+  // Asserted to exist, not judged — the four `min-height` sites that are not controls.
+  { file: 'src/styles/hero.css', selector: '.hero' },
+  { file: 'src/styles/shell.css', selector: '.app-shell' },
+  { file: 'src/styles/shell.css', selector: '.app-toolbar' },
+  { file: 'src/styles/shell.css', selector: '.mobile-topbar' },
+];
+
+export function findControlFloor(
+  cssFiles,
+  semanticText,
+  rows = CONTROL_FLOOR_ROWS,
+  allow = CONTROL_ALLOW_ROWS,
+  floor = TOUCH_FLOOR,
+  sourcePath = 'src/styles/tokens/2-semantic.css'
+) {
+  const failures = [];
+  // The binding arm reads the token's own declarations, both grounds included: one under-floor
+  // copy is enough to ship a small control, so none is exempt.
+  const declarations = [
+    ...stripComments(semanticText).matchAll(/--control-h\s*:\s*([^;}]+);/g),
+  ];
+  if (!declarations.length) {
+    failures.push({
+      path: sourcePath,
+      line: 0,
+      text: `--control-h is declared 0 times — the controls' floor has no binding`,
+    });
+  }
+  for (const m of declarations) {
+    const value = m[1].trim();
+    const px = /^([0-9.]+)px$/.exec(value);
+    if (!px) {
+      failures.push({
+        path: sourcePath,
+        line: lineOf(semanticText, m.index),
+        text: `--control-h: ${value} is not a px value — the ${floor}px floor cannot be certified`,
+      });
+    } else if (Number(px[1]) < floor) {
+      failures.push({
+        path: sourcePath,
+        line: lineOf(semanticText, m.index),
+        text: `--control-h: ${value} is under the ${floor}px floor`,
+      });
+    }
+  }
+  // The row arm: the same unanchored, ENDS-WITH-the-selector match `findTouchTargets` uses and
+  // documents — a compound copy of a control (`.cart-panel .cart-line-qty button`) is read, a
+  // `:hover` suffix is not — so a second copy is judged where it lives, and a row whose rules
+  // declare no `min-height` anywhere is a refusal rather than a silent skip. A selector wrapped
+  // across lines is whitespace-normalised before it becomes the pattern, because the authored
+  // selectors wrap (`.field input,\n.field select`).
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const judge = (row, judged) => {
+    const pattern = row.selector.trim().split(/\s+/).map(esc).join('\\s+');
+    const re = new RegExp(`${pattern}\\s*\\{([^}]*)\\}`, 'g');
+    let sized = false;
+    for (const file of cssFiles) {
+      for (const m of stripComments(file.text).matchAll(re)) {
+        const decl = /(^|[;\s])min-height\s*:\s*([^;}]+)/.exec(m[1]);
+        if (!decl) continue;
+        sized = true;
+        if (!judged) continue;
+        const value = decl[2].trim();
+        const px = /^([0-9.]+)px$/.exec(value);
+        if (px) {
+          if (Number(px[1]) < floor) {
+            failures.push({
+              path: file.path,
+              line: lineOf(file.text, m.index),
+              text: `${row.selector} min-height: ${value} is under the ${floor}px control floor`,
+            });
+          }
+        } else if (!/^var\(\s*--control-h\s*\)$/.test(value)) {
+          failures.push({
+            path: file.path,
+            line: lineOf(file.text, m.index),
+            text: `${row.selector} min-height: ${value} is not a px value or var(--control-h)`,
+          });
+        }
+      }
+    }
+    if (!sized) {
+      failures.push({
+        path: row.file,
+        line: 0,
+        text: judged
+          ? `no rule for ${row.selector} declaring min-height — the control has no floor`
+          : `no rule for ${row.selector} declaring min-height — the allowlist site is gone`,
+      });
+    }
+  };
+  for (const row of rows) judge(row, true);
+  for (const row of allow) judge(row, false);
+  return failures;
+}
+
 // Nothing else in the guard reads global.css, so the declaration of what ships was invisible to
 // it: dropping an @import removed real CSS while every check stayed green, and an orphan slice on
 // disk fed findUndefinedTokens definitions that never ship - masking the exact bug class that
@@ -1163,6 +1628,22 @@ function main() {
     [
       'contrast',
       () => findContrast(readSrc(cssFiles, 'src/styles/tokens/1-primitive.css')),
+    ],
+    // Task 13's five. Registered inside the array literal, above the conditional `token drift`
+    // push, so the count printed at the end is still read off CHECKS.length (20 here, 19 where
+    // the gitignored docs are absent and `token drift` announces its skip).
+    ['tmp deletion', () => findTmpDeletion(cssFiles)],
+    ['indirection', () => findIndirection(cssFiles)],
+    ['translucency cap', () => findTranslucencyCap(cssFiles)],
+    [
+      'contrast floor',
+      () =>
+        findContrastFloor(readSrc(cssFiles, 'src/styles/tokens/1-primitive.css'), cssFiles),
+    ],
+    [
+      'control floor',
+      () =>
+        findControlFloor(cssFiles, readSrc(cssFiles, 'src/styles/tokens/2-semantic.css')),
     ],
   ];
   // The docs are gitignored, so a fresh clone must still build: guard the check on the file
