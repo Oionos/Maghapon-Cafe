@@ -1169,7 +1169,8 @@ export function findTranslucencyCap(
         failures.push({
           path: file.path,
           line,
-          text: `glass on ${rule ? rule.selector : '?'} declares no background — no alpha to certify`,
+          text:
+            `glass on ${rule ? rule.selector : '?'} declares no background — no alpha to certify`,
         });
         continue;
       }
@@ -1177,11 +1178,12 @@ export function findTranslucencyCap(
       const resolved = resolveThrough(first, raw);
       const alpha = resolved === undefined ? undefined : glassAlpha(resolved);
       if (alpha === undefined) {
+        const arrow = resolved === undefined || resolved === raw ? '' : ` → ${resolved}`;
         failures.push({
           path: file.path,
           line,
           text:
-            `glass background ${raw}${resolved === undefined || resolved === raw ? '' : ` → ${resolved}`}` +
+            `glass background ${raw}${arrow}` +
             ` has no readable alpha — the ${alphaFloor} floor cannot be certified`,
         });
       } else if (alpha < alphaFloor) {

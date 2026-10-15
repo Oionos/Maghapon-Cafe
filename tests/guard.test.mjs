@@ -1580,7 +1580,9 @@ test('tmp deletion accepts the real tree and pins its two scans', () => {
   ]);
 });
 
-test('tmp deletion refuses a reintroduced --tmp-* name, and a commented-out one is not a hit', () => {
+test(
+  'tmp deletion refuses a reintroduced --tmp-* name, and a commented-out one is not a hit',
+  () => {
   assert.deepEqual(
     findTmpDeletion([{ path: 'src/styles/hero.css', text: '.x {\n  --tmp-radius: 1rem;\n}' }]),
     [
@@ -1639,7 +1641,10 @@ test('indirection accepts the real tree and the canonical one hop', () => {
 test('indirection refuses a second hop and a cycle at its heads', () => {
   assert.deepEqual(
     findIndirection([
-      { path: 'src/styles/tokens/2-semantic.css', text: ':root{\n  --a: var(--b);\n  --b: var(--c);\n  --c: #5c7c25;\n}' },
+      {
+        path: 'src/styles/tokens/2-semantic.css',
+        text: ':root{\n  --a: var(--b);\n  --b: var(--c);\n  --c: #5c7c25;\n}',
+      },
     ]),
     [
       {
@@ -1651,7 +1656,10 @@ test('indirection refuses a second hop and a cycle at its heads', () => {
   );
   assert.deepEqual(
     findIndirection([
-      { path: 'src/styles/tokens/2-semantic.css', text: ':root{\n  --a: var(--b);\n  --b: var(--a);\n}' },
+      {
+        path: 'src/styles/tokens/2-semantic.css',
+        text: ':root{\n  --a: var(--b);\n  --b: var(--a);\n}',
+      },
     ]),
     [
       {
@@ -1668,13 +1676,18 @@ test('indirection refuses a second hop and a cycle at its heads', () => {
   );
 });
 
-test('indirection stays silent on dangling targets and fallback forms — other owners, other shapes', () => {
+test(
+  'indirection stays silent on dangling targets and fallback forms — other owners, other shapes',
+  () => {
   // A dangling read is `undefined token`'s finding, and a value like `var(--a, 1rem)` is not a
   // bare var at all: neither is this check's to refuse, and a predicate that widened to either
   // would print a second finding about a file `undefined token` already reports honestly.
   assert.deepEqual(
     findIndirection([
-      { path: 'src/styles/tokens/2-semantic.css', text: ':root{\n  --a: var(--missing);\n  --b: var(--a, 1rem);\n}' },
+      {
+        path: 'src/styles/tokens/2-semantic.css',
+        text: ':root{\n  --a: var(--missing);\n  --b: var(--a, 1rem);\n}',
+      },
     ]),
     []
   );
@@ -1740,14 +1753,18 @@ test('translucency cap reads both shipped glass declarations — the scanner is 
 
 test('translucency cap refuses a blur outside the pair, and the count that rode in with it', () => {
   const tree = [
-    { path: 'src/styles/tokens/2-semantic.css', text: ':root{--chrome-glass: rgba(244, 239, 230, 0.96);}' },
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      text: ':root{--chrome-glass: rgba(244, 239, 230, 0.96);}',
+    },
     {
       path: 'src/styles/shell.css',
       text: [
         '.mobile-topbar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
         '.tab-bar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
         '.header { background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(2px); }',
-        '@media (prefers-reduced-transparency: reduce) { .mobile-topbar, .tab-bar { backdrop-filter: none; } }',
+        '@media (prefers-reduced-transparency: reduce) { .mobile-topbar, .tab-bar {' +
+          ' backdrop-filter: none; } }',
       ].join('\n'),
     },
   ];
@@ -1766,18 +1783,21 @@ test('translucency cap refuses a blur outside the pair, and the count that rode 
 });
 
 test('translucency cap refuses a sheer glass fill at each site, with the alpha printed', () => {
-  assert.deepEqual(findTranslucencyCap(glassTree(':root{--chrome-glass: rgba(244, 239, 230, 0.5);}')), [
-    {
-      path: 'src/styles/shell.css',
-      line: 3,
-      text: 'glass background var(--chrome-glass) alpha 0.5 is under the 0.92 floor',
-    },
-    {
-      path: 'src/styles/shell.css',
-      line: 7,
-      text: 'glass background var(--chrome-glass) alpha 0.5 is under the 0.92 floor',
-    },
-  ]);
+  assert.deepEqual(
+    findTranslucencyCap(glassTree(':root{--chrome-glass: rgba(244, 239, 230, 0.5);}')),
+    [
+      {
+        path: 'src/styles/shell.css',
+        line: 3,
+        text: 'glass background var(--chrome-glass) alpha 0.5 is under the 0.92 floor',
+      },
+      {
+        path: 'src/styles/shell.css',
+        line: 7,
+        text: 'glass background var(--chrome-glass) alpha 0.5 is under the 0.92 floor',
+      },
+    ]
+  );
 });
 
 test('translucency cap refuses glass no reduce block stops', () => {
@@ -1996,7 +2016,9 @@ test('contrast floor refuses matcha-600 as text and matcha-700 over the editoria
       {
         path: 'src/styles/x.css',
         line: 2,
-        text: 'color: var(--matcha-700) over background: var(--cream-50) — §6.4: matcha-700 is never text on the editorial wash',
+        text:
+          'color: var(--matcha-700) over background: var(--cream-50) — §6.4: ' +
+          'matcha-700 is never text on the editorial wash',
       },
     ]
   );
@@ -2037,7 +2059,9 @@ test('control floor accepts the real tree and pins its declared tables', () => {
   ]);
 });
 
-test('control floor binds the token itself — zero declarations and under-floor values refuse', () => {
+test(
+  'control floor binds the token itself — zero declarations and under-floor values refuse',
+  () => {
   assert.deepEqual(findControlFloor([], '--control-h: 40px;', [], []), [
     {
       path: 'src/styles/tokens/2-semantic.css',
@@ -2066,15 +2090,30 @@ test('control floor judges rows — px literals, the token, and the fallback ref
   const sem = '--control-h: 44px;';
   // Both legal floor forms, the declared 46px literal (D14's row) and the exact token read.
   assert.deepEqual(
-    findControlFloor([{ path: 'src/styles/button.css', text: '.btn {\n  min-height: 46px;\n}' }], sem, rows, []),
+    findControlFloor(
+      [{ path: 'src/styles/button.css', text: '.btn {\n  min-height: 46px;\n}' }],
+      sem,
+      rows,
+      []
+    ),
     []
   );
   assert.deepEqual(
-    findControlFloor([{ path: 'src/styles/button.css', text: '.btn {\n  min-height: var(--control-h);\n}' }], sem, rows, []),
+    findControlFloor(
+      [{ path: 'src/styles/button.css', text: '.btn {\n  min-height: var(--control-h);\n}' }],
+      sem,
+      rows,
+      []
+    ),
     []
   );
   assert.deepEqual(
-    findControlFloor([{ path: 'src/styles/button.css', text: '.btn {\n  min-height: 40px;\n}' }], sem, rows, []),
+    findControlFloor(
+      [{ path: 'src/styles/button.css', text: '.btn {\n  min-height: 40px;\n}' }],
+      sem,
+      rows,
+      []
+    ),
     [
       {
         path: 'src/styles/button.css',
@@ -2086,7 +2125,12 @@ test('control floor judges rows — px literals, the token, and the fallback ref
   // `var(--control-h, 44px)` is refused by name: a fallback makes the declared value optional —
   // Task 8's M-3, plan-mandated, and named in the check's comment.
   assert.deepEqual(
-    findControlFloor([{ path: 'src/styles/button.css', text: '.btn {\n  min-height: var(--control-h, 44px);\n}' }], sem, rows, []),
+    findControlFloor(
+      [{ path: 'src/styles/button.css', text: '.btn {\n  min-height: var(--control-h, 44px);\n}' }],
+      sem,
+      rows,
+      []
+    ),
     [
       {
         path: 'src/styles/button.css',
