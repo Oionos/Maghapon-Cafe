@@ -26,7 +26,6 @@ import {
   PERSIST_KEYS,
   SCOPE_DELTA,
   TIER2_TOKENS,
-  TMP_READ_CAP,
   TONE_TAG_TOTAL,
   TOUCH_FLOOR,
   TOUCH_SCAN_FILES,
@@ -985,11 +984,9 @@ test('findAliasAbsence flags a deleted alias read again', () => {
   ]);
 });
 
-test('findAliasAbsence accepts the real tree and pins the cap and both declared tables', () => {
-  // No deleted name is defined or read anywhere in src/styles/, and the 31 transitional reads
-  // all name known rows.
+test('findAliasAbsence accepts the real tree and pins both declared tables', () => {
+  // No deleted name is defined or read anywhere in src/styles/.
   assert.deepEqual(findAliasAbsence(walkedCss()), []);
-  assert.equal(TMP_READ_CAP, 31, 'the measured 2A shape: 20 + 5 + 3 + 3');
   // Written out, not derived: this is §3.3's list, and a name added to or dropped from it is a
   // design edit the test must see, not follow.
   assert.deepEqual(DELETED_ALIASES, [
@@ -1004,41 +1001,6 @@ test('findAliasAbsence accepts the real tree and pins the cap and both declared 
     '--border-ui', '--radius-container', '--card-pad', '--elev-card',
     '--grain-opacity', '--dur-ui', '--focus-ring', '--elev-sheet',
     '--chrome-glass', '--focus-halo', '--pulse-ring', '--control-h',
-  ]);
-});
-
-test('findAliasAbsence lets 31 transitional reads stand and refuses the 32nd', () => {
-  const reads = (n) =>
-    Array.from({ length: n }, (_, i) => `.u${i}{border-radius:var(--tmp-radius-container)}`)
-      .join('\n');
-  const files = (n) => [{ path: 'src/styles/hero.css', text: reads(n) }];
-  // 31 IS the cap: a CAP, not an equality, so the layer may shrink from here and 2B lands at 0.
-  assert.deepEqual(findAliasAbsence(files(31)), []);
-  // One aggregate finding, against the layer rather than a line — `line: 0` because
-  // `stripComments` rewrites offsets and any line here would point at the wrong place.
-  assert.deepEqual(findAliasAbsence(files(32)), [
-    {
-      path: 'src/styles/',
-      line: 0,
-      text: '32 --tmp-* reads exceeds the cap of 31 — the transitional layer may only ' +
-        'shrink; a new transitional consumer belongs in 2B',
-    },
-  ]);
-});
-
-test('findAliasAbsence refuses a --tmp-* name outside TMP_SITES', () => {
-  const fails = findAliasAbsence([
-    { path: 'src/styles/hero.css', text: '.x{border-radius:var(--tmp-new-thing)}' },
-  ]);
-  // Refused by name, and only once: one read is far under the cap, so the aggregate stays silent.
-  assert.deepEqual(fails, [
-    {
-      path: 'src/styles/hero.css',
-      line: 1,
-      text:
-        'unknown --tmp-new-thing — not in TMP_SITES; a new transitional token is a spec ' +
-        'change',
-    },
   ]);
 });
 

@@ -27,12 +27,11 @@ export const WEB_ROUTES = [
 
 // The @import list in src/styles/global.css IS the cascade: slices are contiguous ranges of the
 // pre-split file, so an import that is missing, added, or reordered changes rendering with no
-// compile error. Order is compared, not just membership, because the 17 imported files are
+// compile error. Order is compared, not just membership, because the 16 imported files are
 // interchangeable to a set comparison and not at all to the browser.
 export const CSS_IMPORT_ORDER = [
   'src/styles/tokens/1-primitive.css',
   'src/styles/tokens/2-semantic.css',
-  'src/styles/tokens/3-transitional.css',
   'src/styles/base.css',
   'src/styles/button.css',
   'src/styles/shell.css',
@@ -510,19 +509,8 @@ export const DELETED_ALIASES = [
   'ease',
 ];
 
-// The transitional layer's measured shape (spec §3.4). The cap is a CAP, not an equality: the
-// layer may only shrink, and 2B deletes this file, at which point 0 is the number that passes.
-export const TMP_SITES = [
-  ['--tmp-radius-container', 20],
-  ['--tmp-shadow-card', 5],
-  ['--tmp-line-strong', 3],
-  ['--tmp-chrome-glass-rgb', 3],
-];
-export const TMP_READ_CAP = TMP_SITES.reduce((n, [, count]) => n + count, 0);
-
 export function findAliasAbsence(cssFiles) {
   const failures = [];
-  let total = 0;
   for (const file of cssFiles) {
     // A commented-out alias is not an alias (see `transition css` for why comments are stripped).
     const text = stripComments(file.text);
@@ -541,32 +529,6 @@ export function findAliasAbsence(cssFiles) {
         });
       }
     }
-    // Fallback-form reads (`var(--tmp-x, 1rem)`) are invisible to this census — 0 in the tree
-    // today; a fallback read of an EXISTING name would be counted by no check (an unknown one is
-    // still refused as undefined), so widen to `var\(\s*(--tmp-[\w-]+)` when the first appears.
-    for (const m of text.matchAll(/var\(\s*(--tmp-[\w-]+)\s*\)/g)) {
-      total += 1;
-      const row = TMP_SITES.find(([name]) => name === m[1]);
-      if (!row) {
-        failures.push({
-          path: file.path,
-          line: lineOf(file.text, m.index),
-          text: `unknown ${m[1]} — not in TMP_SITES; a new transitional token is a spec change`,
-        });
-      }
-    }
-  }
-  // Reported once, against the layer rather than a line, because the defect is the aggregate.
-  // `line: 0` for the same reason the two scope checks use it: the finding is about the tree,
-  // not about one site in it.
-  if (total > TMP_READ_CAP) {
-    failures.push({
-      path: 'src/styles/',
-      line: 0,
-      text:
-        `${total} --tmp-* reads exceeds the cap of ${TMP_READ_CAP} — the transitional ` +
-        'layer may only shrink; a new transitional consumer belongs in 2B',
-    });
   }
   return failures;
 }
