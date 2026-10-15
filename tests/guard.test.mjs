@@ -1760,7 +1760,7 @@ test('translucency cap refuses a blur outside the pair, and the count that rode 
     {
       path: 'src/styles/shell.css',
       line: 3,
-      text: '3 glass declarations — the cap is 2 (§6.2)',
+      text: '3 blurred surfaces — the cap is 2 (§6.2)',
     },
   ]);
 });
@@ -1795,21 +1795,60 @@ test('translucency cap refuses glass no reduce block stops', () => {
   ]);
 });
 
-test('translucency cap refuses a third declaration even on the sanctioned pair', () => {
+test('translucency cap accepts a breakpoint-tuned copy of a sanctioned selector', () => {
   const tree = [
-    { path: 'src/styles/tokens/2-semantic.css', text: ':root{--chrome-glass: rgba(244, 239, 230, 0.96);}' },
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      text: ':root{--chrome-glass: rgba(244, 239, 230, 0.96);}',
+    },
     {
       path: 'src/styles/shell.css',
       text: [
+        '.mobile-topbar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
         '.tab-bar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
-        '.tab-bar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
-        '.tab-bar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
-        '@media (prefers-reduced-transparency: reduce) { .tab-bar { backdrop-filter: none; } }',
+        '@media (min-width: 768px) {',
+        '  .tab-bar { background: var(--chrome-glass); backdrop-filter: blur(14px); }',
+        '}',
+        '@media (prefers-reduced-transparency: reduce) {',
+        '  .mobile-topbar,',
+        '  .tab-bar { backdrop-filter: none; }',
+        '}',
       ].join('\n'),
     },
   ];
-  assert.deepEqual(findTranslucencyCap(tree), [
-    { path: 'src/styles/shell.css', line: 3, text: '3 glass declarations — the cap is 2 (§6.2)' },
+  assert.deepEqual(findTranslucencyCap(tree), []);
+  const foreign = [
+    {
+      path: 'src/styles/tokens/2-semantic.css',
+      text: ':root{--chrome-glass: rgba(244, 239, 230, 0.96);}',
+    },
+    {
+      path: 'src/styles/shell.css',
+      text: [
+        '.mobile-topbar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
+        '.tab-bar { background: var(--chrome-glass); backdrop-filter: blur(10px); }',
+        '@media (min-width: 768px) {',
+        '  .tab-bar { background: var(--chrome-glass); backdrop-filter: blur(14px); }',
+        '}',
+        '.header { background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(2px); }',
+        '@media (prefers-reduced-transparency: reduce) {',
+        '  .mobile-topbar,',
+        '  .tab-bar { backdrop-filter: none; }',
+        '}',
+      ].join('\n'),
+    },
+  ];
+  assert.deepEqual(findTranslucencyCap(foreign), [
+    {
+      path: 'src/styles/shell.css',
+      line: 6,
+      text: 'glass on .header — §6.2 keeps blur on .mobile-topbar and .tab-bar only',
+    },
+    {
+      path: 'src/styles/shell.css',
+      line: 6,
+      text: '3 blurred surfaces — the cap is 2 (§6.2)',
+    },
   ]);
 });
 
@@ -2088,6 +2127,21 @@ test('control floor requires every declared row site and asserts the allowlist e
         {
           path: 'src/styles/booking.css',
           text: '.field input,\n.field select {\n  min-height: var(--control-h);\n}',
+        },
+      ],
+      sem,
+      [{ file: 'src/styles/booking.css', selector: '.field input, .field select' }],
+      []
+    ),
+    []
+  );
+  // The `,.`-tight form: the same selector list, legal CSS — the comma join must accept it.
+  assert.deepEqual(
+    findControlFloor(
+      [
+        {
+          path: 'src/styles/booking.css',
+          text: '.field input,.field select {\n  min-height: var(--control-h);\n}',
         },
       ],
       sem,

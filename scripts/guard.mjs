@@ -788,7 +788,7 @@ export const TOUCH_TARGETS = [
   { file: 'src/styles/menu-card.css', selector: '.tab-btn', props: ['min-height'] },
 ];
 
-// The declared SCAN set: every shipping stylesheet except the three token tiers, which declare
+// The declared SCAN set: every shipping stylesheet except the two token tiers, which declare
 // values rather than controls. Derived from the cascade's own declared list (CSS_IMPORT_ORDER) so a
 // slice added to `global.css` is scanned without a second edit here, and `style imports` already
 // keeps that list honest against disk. A `row.file` absent from the walked corpus is still a
@@ -1038,8 +1038,10 @@ function customPropertyDecls(cssFiles) {
 // Resolution reads the FIRST declaration of the target's name (the M-8 convention above), so a
 // later duplicate cannot change a verdict the first declaration already settled. Two limits are
 // named here: a literal re-introduced at a previously converted site is invisible to this check
-// (`token drift` and `alias absence` own value shapes, not declaration shapes), and a target no
-// shipping file declares is silent on purpose — a dangling read is `undefined token`'s finding.
+// — no check owns arbitrary value shapes (`token drift` censuses DESIGN.md's hexes, `alias
+// absence` judges the seven retired names), so the gap is inherent to a static guard — and a
+// target no shipping file declares is silent on purpose: a dangling read is `undefined
+// token`'s finding.
 export function findIndirection(cssFiles) {
   const { decls, first } = customPropertyDecls(cssFiles);
   // A local, non-global pattern: `.test` on a global regex would carry `lastIndex` between rows
@@ -1107,14 +1109,17 @@ function glassAlpha(value) {
 
 // Task 13 check 3 — `translucency cap`. §6.2 ships exactly two glass elements and keeps their
 // blur behind a nearly opaque fill; under a reduce-transparency request the chrome goes opaque
-// and blurless. Four arms, all read from declarations: the count of non-`none` declarations is
-// capped at the pair's own size; every such declaration's selector is a pair member; every glass
-// rule's resolved `background` alpha clears the floor; and a reduce block must stop each pair
-// member that blurs. The media test accepts the bare feature form exactly as `reducedMotionBlocks`
+// and blurless. Four arms, all read from declarations: the count of DISTINCT blurred selectors
+// is capped at the pair's own size (the pair is elements, not rules — a breakpoint-tuned copy
+// of a sanctioned selector adds no surface, and a foreign selector is already the membership
+// arm's finding); every such declaration's selector is a pair member; every glass rule's
+// resolved `background` alpha clears the floor; and a reduce block must stop each pair member
+// that blurs. The media test accepts the bare feature form exactly as `reducedMotionBlocks`
 // does — a correct file must not be refused — and never `no-preference`. The limits: this reads
-// declarations, not the resolved cascade, so an alpha arriving through a shorthand or a composite
-// is invisible; the property read is the unprefixed `backdrop-filter`; and Ruling X's boundary
-// holds because every scan reads the stripped text (a commented-out declaration is not one).
+// declarations, not the resolved cascade, so an alpha arriving through a shorthand or a
+// composite is invisible; the property read is the unprefixed `backdrop-filter`; and Ruling X's
+// boundary holds because every scan reads the stripped text (a commented-out declaration is not
+// one).
 export const GLASS_SELECTORS = ['.mobile-topbar', '.tab-bar'];
 export const GLASS_ALPHA_FLOOR = 0.92;
 
@@ -1188,12 +1193,13 @@ export function findTranslucencyCap(
       }
     }
   }
-  if (glass.length > selectors.length) {
+  const surfaces = new Set(glass.flatMap((g) => g.parts));
+  if (surfaces.size > selectors.length) {
     const last = glass[glass.length - 1];
     failures.push({
       path: last.path,
       line: last.line,
-      text: `${glass.length} glass declarations — the cap is ${selectors.length} (§6.2)`,
+      text: `${surfaces.size} blurred surfaces — the cap is ${selectors.length} (§6.2)`,
     });
   }
   for (const sel of selectors) {
@@ -1396,10 +1402,15 @@ export function findControlFloor(
   // `:hover` suffix is not — so a second copy is judged where it lives, and a row whose rules
   // declare no `min-height` anywhere is a refusal rather than a silent skip. A selector wrapped
   // across lines is whitespace-normalised before it becomes the pattern, because the authored
-  // selectors wrap (`.field input,\n.field select`).
+  // selectors wrap (`.field input,\n.field select`), and the comma join is `\s*,\s*` — so the
+  // `, `, `,\n` and `,.`-tight forms all match. The earlier single-whitespace join demanded
+  // whitespace after the comma and refused the tight form with a false "no rule … no floor".
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const judge = (row, judged) => {
-    const pattern = row.selector.trim().split(/\s+/).map(esc).join('\\s+');
+    const pattern = row.selector
+      .split(',')
+      .map((part) => part.trim().split(/\s+/).map(esc).join('\\s+'))
+      .join('\\s*,\\s*');
     const re = new RegExp(`${pattern}\\s*\\{([^}]*)\\}`, 'g');
     let sized = false;
     for (const file of cssFiles) {
