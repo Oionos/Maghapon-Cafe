@@ -52,7 +52,10 @@
 }
 
 /* ---- Press feedback — tactile squish (fast ease-out) ---- */
-.btn:active,
+/* §6.5: one rule per ground list, same declarations — a list that mixes grounds could never carry
+   a per-ground value. `.btn` reaches both grounds (Hero.astro:28-29, /404, the loyalty band), so
+   it keeps a single shared rule (§3 item 4). No pixel moves. */
+/* app ground */
 .cart-btn:active,
 .chip:active,
 .tab-btn:active,
@@ -61,9 +64,18 @@
 .drawer-close:active,
 .cart-panel-close:active,
 .rail-toggle:active,
-.menu-card:active,
+.menu-card:active {
+  transform: scale(0.97);
+  transition-duration: 160ms;
+}
+/* editorial ground */
 .info-card:active,
 .testimonial-card:active {
+  transform: scale(0.97);
+  transition-duration: 160ms;
+}
+/* both grounds */
+.btn:active {
   transform: scale(0.97);
   transition-duration: 160ms;
 }
@@ -86,16 +98,21 @@
     filter: none;
     transition-delay: 0ms !important;
   }
-  .btn:hover,
+  /* §6.5: one rule per ground list — app, editorial, and the both-ground `.btn`. */
   .cart-btn:hover,
   .chip:hover,
   .tab-btn:hover,
-  .info-card:hover,
   .menu-card:hover,
   .menu-card-compact:hover,
-  .testimonial-card:hover,
   .add-btn:hover,
   .menu-card-compact:hover .menu-card-photo {
+    transform: none;
+  }
+  .info-card:hover,
+  .testimonial-card:hover {
+    transform: none;
+  }
+  .btn:hover {
     transform: none;
   }
 }

@@ -342,23 +342,31 @@
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
 }
-/* spotlight border on hover */
-.menu-card,
+/* spotlight border on hover — §6.5, one rule per ground list */
+.menu-card {
+  position: relative;
+}
 .info-card,
 .testimonial-card {
   position: relative;
 }
-.menu-card:hover,
+.menu-card:hover {
+  border-color: rgba(187, 61, 3, 0.22);
+}
 .info-card:hover {
   border-color: rgba(187, 61, 3, 0.22);
 }
-/* tabular nums for all price displays */
+/* tabular nums for all price displays — §6.5, one rule per ground list.
+   `.price` has no markup site at all (§6.6 item 7) and stays in the app list until that
+   deletion is approved. */
 .price,
 .price-chip b,
 .cart-line-price,
 .cart-total b,
 .order-total b,
-.info-big,
 .admin-stat b {
+  font-variant-numeric: tabular-nums;
+}
+.info-big {
   font-variant-numeric: tabular-nums;
 }
