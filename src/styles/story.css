@@ -271,7 +271,7 @@
 .info-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--elev-float);
-  border-color: var(--tmp-line-strong);
+  border-color: var(--line-strong);
 }
 .info-card h3 {
   font-size: 1rem;

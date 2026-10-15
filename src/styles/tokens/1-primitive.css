@@ -33,9 +33,8 @@
   --header-h: 64px;
   --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* Scale steps (§4.3) with a 2A consumer. --r-xs/-sm/-pill, --space-1/-2/-4/-6/-7/-8,
-     --elev-none/-layer and the --t-* tiers arrive with their first reader or not at all;
-     see spec §3.2 and §9's corrections 8 and 11. */
+  /* Scale steps (§4.3) with a 2A consumer. The higher space rungs and the --t-* tiers arrive
+     with their first reader or not at all; see spec §3.2 and §9's corrections 8 and 11. */
   --r-md: 12px;
   --r-lg: 16px;
   --r-xl: 20px;
@@ -43,4 +42,19 @@
   --space-5: 24px;
   --elev-hairline: 0 1px 2px rgba(42, 18, 6, 0.06);
   --elev-float: 0 24px 56px rgba(42, 18, 6, 0.14);
+
+  /* 2B Task 2's landing block: radius serves the pill/compact/field set, space the app gaps,
+     elev hover + drawer, paper the white app surfaces, and line-strong carries the retired
+     alias's value to its three sites. `elev-none` from §8.1's list is dropped — that list keeps
+     only steps a 2B read reaches, and no shadow-reset consumer exists anywhere in src/styles. */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-4: 16px;
+  --elev-raise: 0 2px 8px rgba(42, 18, 6, 0.08);
+  --elev-layer: -20px 0 50px rgba(42, 18, 6, 0.28);
+  --paper: #ffffff;
+  --line-strong: rgba(42, 18, 6, 0.18);
 }

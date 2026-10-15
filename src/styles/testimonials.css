@@ -33,7 +33,7 @@
 .testimonial-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--elev-float);
-  border-color: var(--tmp-line-strong);
+  border-color: var(--line-strong);
 }
 .testimonial-card blockquote {
   margin: 0;

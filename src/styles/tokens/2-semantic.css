@@ -22,13 +22,19 @@
   --dur-ui: 260ms;
   --grain-opacity: 0.025;
   --focus-ring: var(--rust-600);
+  --elev-sheet: var(--elev-float);
+  --chrome-glass: rgba(244, 239, 230, 0.96);
+  --focus-halo: 0 0 0 4px rgba(214, 135, 62, 0.12);
+  --pulse-ring: 187, 61, 3;
+  --control-h: 44px;
 }
 
 [data-surface="app"] {
   --surface: var(--cream-0);
-  /* A literal, not a token, exactly as parent §5.1 writes it. Whether white belongs on a cream
-     app ground is a brand decision, and it is 2B's (spec §10). */
-  --surface-raised: #ffffff;
+  /* The white is --paper's (tier 1), not a literal here. Whether white belongs on a cream app
+     ground was already answered in 2A's signed table (§4: `--surface-raised` = white), so 2B
+     names the value rather than deciding it again. */
+  --surface-raised: var(--paper);
   --text-1: var(--ink-900);
   --text-2: var(--ink-700);
   --border: rgba(42, 18, 6, 0.14);
@@ -39,6 +45,11 @@
   --dur-ui: 180ms;
   --grain-opacity: 0;
   --focus-ring: var(--rust-600);
+  --elev-sheet: var(--elev-float);
+  --chrome-glass: rgba(244, 239, 230, 0.96);
+  --focus-halo: 0 0 0 4px rgba(214, 135, 62, 0.12);
+  --pulse-ring: 187, 61, 3;
+  --control-h: 44px;
 }
 
 /* Dark grounds keep today's ring hex: --rust-400 IS #d6873e, so a `dark` node is unchanged —

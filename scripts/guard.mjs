@@ -507,7 +507,6 @@ export const DELETED_ALIASES = [
   'shadow',
   'shadow-lift',
   'shadow-soft',
-  'line-strong',
   'ease',
 ];
 
@@ -605,6 +604,11 @@ export const TIER2_TOKENS = [
   '--grain-opacity',
   '--dur-ui',
   '--focus-ring',
+  '--elev-sheet',
+  '--chrome-glass',
+  '--focus-halo',
+  '--pulse-ring',
+  '--control-h',
 ];
 
 // Stricter than coverage, and a different predicate: the two blocks must declare the same KEY SET.

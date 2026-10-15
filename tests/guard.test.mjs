@@ -913,12 +913,13 @@ const readOf = (path) => {
   return hit.text;
 };
 
-// The two scope blocks as fixture text. EDITORIAL_11 is TIER2_TOKENS minus the declared app-only
-// delta, the same shape the shipped sheet has. The compound and tone-only selectors ride along on
-// purpose: `scopeBlocks`'s `]`-before-`{` requirement is what excludes them, and a predicate that
-// started feeding them in would let the compound block OVERWRITE the plain editorial block (the
-// map's later set wins) and refuse these correct fixtures — Ruling S's landmine, pinned here.
-const EDITORIAL_11 = TIER2_TOKENS.filter((k) => k !== '--border-ui');
+// The two scope blocks as fixture text. EDITORIAL_TOKENS is TIER2_TOKENS minus the declared
+// app-only delta, the same shape the shipped sheet has. The compound and tone-only selectors ride
+// along on purpose: `scopeBlocks`'s `]`-before-`{` requirement is what excludes them, and a
+// predicate that started feeding them in would let the compound block OVERWRITE the plain
+// editorial block (the map's later set wins) and refuse these correct fixtures — Ruling S's
+// landmine, pinned here.
+const EDITORIAL_TOKENS = TIER2_TOKENS.filter((k) => k !== '--border-ui');
 const semSheet = (edKeys, apKeys) =>
   [
     ':root{--primitive-only:1}',
@@ -983,7 +984,7 @@ test('findAliasAbsence flags a deleted alias read again', () => {
   ]);
 });
 
-test('findAliasAbsence accepts the real tree and pins the cap and the eight names', () => {
+test('findAliasAbsence accepts the real tree and pins the cap and both declared tables', () => {
   // No deleted name is defined or read anywhere in src/styles/, and the 31 transitional reads
   // all name known rows.
   assert.deepEqual(findAliasAbsence(walkedCss()), []);
@@ -992,7 +993,16 @@ test('findAliasAbsence accepts the real tree and pins the cap and the eight name
   // design edit the test must see, not follow.
   assert.deepEqual(DELETED_ALIASES, [
     'radius', 'radius-sm', 'radius-xs', 'shadow',
-    'shadow-lift', 'shadow-soft', 'line-strong', 'ease',
+    'shadow-lift', 'shadow-soft', 'ease',
+  ]);
+  // The second declared table, written out for the same reason. 2B Task 2 grew it 12 -> 17 by
+  // appending the five names in the order both scope blocks declare them. Nothing else pins this
+  // table, so a name added to or dropped from it would otherwise be invisible.
+  assert.deepEqual(TIER2_TOKENS, [
+    '--surface', '--surface-raised', '--text-1', '--text-2', '--border',
+    '--border-ui', '--radius-container', '--card-pad', '--elev-card',
+    '--grain-opacity', '--dur-ui', '--focus-ring', '--elev-sheet',
+    '--chrome-glass', '--focus-halo', '--pulse-ring', '--control-h',
   ]);
 });
 
@@ -1040,7 +1050,7 @@ test('findScopeCoverage accepts a read declared in both blocks, --border-ui exce
   ];
   // `--card-pad` is declared in both grounds; `--border-ui` only in the app block, and the
   // SCOPE_DELTA row is what keeps that read exempt — losing the table turns this accept red.
-  assert.deepEqual(findScopeCoverage(reads, semSheet(EDITORIAL_11, TIER2_TOKENS)), []);
+  assert.deepEqual(findScopeCoverage(reads, semSheet(EDITORIAL_TOKENS, TIER2_TOKENS)), []);
 });
 
 test('findScopeCoverage accepts the shipped sheet against the real tree', () => {
@@ -1055,7 +1065,7 @@ test('findScopeCoverage accepts the shipped sheet against the real tree', () => 
 test('findScopeCoverage names the block that lacks the read key', () => {
   const reads = [{ path: 'src/styles/hero.css', text: '.x{padding:var(--card-pad)}' }];
   const app = TIER2_TOKENS.filter((k) => k !== '--card-pad');
-  assert.deepEqual(findScopeCoverage(reads, semSheet(EDITORIAL_11, app)), [
+  assert.deepEqual(findScopeCoverage(reads, semSheet(EDITORIAL_TOKENS, app)), [
     {
       path: 'src/styles/hero.css',
       line: 1,
@@ -1066,7 +1076,7 @@ test('findScopeCoverage names the block that lacks the read key', () => {
 
 test('findScopeCoverage reports a read declared in neither block once per block', () => {
   const reads = [{ path: 'src/styles/hero.css', text: '.x{duration:var(--dur-ui)}' }];
-  const ed = EDITORIAL_11.filter((k) => k !== '--dur-ui');
+  const ed = EDITORIAL_TOKENS.filter((k) => k !== '--dur-ui');
   const app = TIER2_TOKENS.filter((k) => k !== '--dur-ui');
   // One finding per ground: the two blocks are separate resolutions, and the operator has to fix
   // both (or one of them, and know which).
@@ -1103,19 +1113,22 @@ test('findScopeCoverage refuses a sheet with no scope blocks instead of going gr
 });
 
 test('findScopeParity accepts two blocks declaring the same key set', () => {
-  // Identical 11-key grounds under a delta table with no rows declared: parity is a key-set
+  // Identical 16-key grounds under a delta table with no rows declared: parity is a key-set
   // comparison, so this must be silent. With SCOPE_DELTA's --border-ui row active the same sheet
   // is the neither-declares dead-delta state and is refused (the refusal this fix round adds) —
   // an identical pair that simply omits the delta key is no longer a legal sheet.
   assert.deepEqual(
-    findScopeParity(semSheet(EDITORIAL_11, EDITORIAL_11), { 'app-only': [], 'editorial-only': [] }),
+    findScopeParity(semSheet(EDITORIAL_TOKENS, EDITORIAL_TOKENS), {
+      'app-only': [],
+      'editorial-only': [],
+    }),
     []
   );
 });
 
 test('findScopeParity reports a key only the editorial block declares', () => {
   const app = TIER2_TOKENS.filter((k) => k !== '--card-pad');
-  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_11, app)), [
+  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_TOKENS, app)), [
     {
       path: 'src/styles/tokens/2-semantic.css',
       line: 0,
@@ -1127,7 +1140,7 @@ test('findScopeParity reports a key only the editorial block declares', () => {
 test('findScopeParity reports a key only the app block declares', () => {
   // The app side carries the shipped tier-2 set, --border-ui included, so the declared app-only
   // delta is accounted for and the only undeclared asymmetry is --card-pad.
-  const ed = EDITORIAL_11.filter((k) => k !== '--card-pad');
+  const ed = EDITORIAL_TOKENS.filter((k) => k !== '--card-pad');
   assert.deepEqual(findScopeParity(semSheet(ed, TIER2_TOKENS)), [
     {
       path: 'src/styles/tokens/2-semantic.css',
@@ -1139,7 +1152,7 @@ test('findScopeParity reports a key only the app block declares', () => {
 
 test('findScopeParity carries --border-ui through SCOPE_DELTA, the declared table', () => {
   const shipped = readOf('src/styles/tokens/2-semantic.css');
-  // The real sheet: 11 editorial keys, 12 app keys, `--border-ui` the one difference.
+  // The real sheet: 16 editorial keys, 17 app keys, `--border-ui` the one difference.
   assert.deepEqual(findScopeParity(shipped), []);
   // The row is what keeps it green: remove the exemption and the same correct sheet is refused.
   assert.deepEqual(findScopeParity(shipped, { 'app-only': [], 'editorial-only': [] }), [
@@ -1158,7 +1171,7 @@ test('findScopeParity refuses an app-only key the delta table does not declare',
   // `--border-ui` is the declared first app-only key; `--probe-extra` is the second and has no
   // row. The table is consulted, never whatever the sheet happens to emit.
   const appWithProbe = [...TIER2_TOKENS, '--probe-extra'];
-  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_11, appWithProbe)), [
+  assert.deepEqual(findScopeParity(semSheet(EDITORIAL_TOKENS, appWithProbe)), [
     {
       path: 'src/styles/tokens/2-semantic.css',
       line: 0,

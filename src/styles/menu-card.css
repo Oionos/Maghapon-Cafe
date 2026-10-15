@@ -13,7 +13,7 @@
 .menu-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--elev-float);
-  border-color: var(--tmp-line-strong);
+  border-color: var(--line-strong);
 }
 .menu-card-media {
   position: relative;
