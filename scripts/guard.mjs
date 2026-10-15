@@ -857,11 +857,14 @@ export function findTouchTargets(
       continue;
     }
     for (const prop of row.props) {
-      // Every declaration of `prop` inside every rule whose selector ENDS WITH this one immediately
-      // before `{` — the match is unanchored, so `.cart-panel .cart-line-qty button` is read while
-      // `.tab-btn:hover` is not: a `:hover` suffix sits between the target and the brace, and a
-      // hover rule that changes colour must not be able to satisfy or break a size predicate.
-      // `[^}]*` stops at the first block end, which is what keeps the suffix out.
+      // Each rule whose selector ENDS WITH this one immediately before `{` — the match is
+      // unanchored, so `.cart-panel .cart-line-qty button` is read while `.tab-btn:hover` is not:
+      // a `:hover` suffix sits between the target and the brace, and a hover rule that changes
+      // colour must not be able to satisfy or break a size predicate. `[^}]*` stops at the first
+      // block end, which is what keeps the suffix out. Within a matched block the FIRST `<prop>:`
+      // declaration is judged (the lookup is a single `exec`, not a global scan), and `m.index`
+      // comes from the comment-stripped text while `lineOf` reads the raw text — the two agree only
+      // because `stripComments` replaces comments with equal-length spaces.
       const re = new RegExp(
         `${row.selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`,
         'g'

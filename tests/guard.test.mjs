@@ -1566,13 +1566,26 @@ test('touch targets scans the declared file set — a second copy is judged wher
 });
 
 test('touch targets pins its declared scan set', () => {
-  // Derived from the cascade's own list, so it cannot drift from it; the exclusion is the token
-  // tiers, and responsive.css (the live second copy) must be inside it.
+  // The set is the cascade's declared list minus the token tiers, and responsive.css (the live
+  // second copy) must be inside it. Spelled out literally so the pin can fail: a re-derived
+  // `deepEqual` against the implementation's own expression only proves it agrees with itself.
   assert.equal(TOUCH_SCAN_FILES.length, 14);
   assert.ok(TOUCH_SCAN_FILES.includes('src/styles/responsive.css'));
   assert.ok(!TOUCH_SCAN_FILES.some((p) => p.startsWith('src/styles/tokens/')));
-  assert.deepEqual(
-    TOUCH_SCAN_FILES,
-    CSS_IMPORT_ORDER.filter((p) => !p.startsWith('src/styles/tokens/'))
-  );
+  assert.deepEqual(TOUCH_SCAN_FILES, [
+    'src/styles/base.css',
+    'src/styles/button.css',
+    'src/styles/shell.css',
+    'src/styles/hero.css',
+    'src/styles/story.css',
+    'src/styles/menu-card.css',
+    'src/styles/menu-page.css',
+    'src/styles/testimonials.css',
+    'src/styles/booking.css',
+    'src/styles/footer.css',
+    'src/styles/cart-drawer.css',
+    'src/styles/admin.css',
+    'src/styles/motion.css',
+    'src/styles/responsive.css',
+  ]);
 });

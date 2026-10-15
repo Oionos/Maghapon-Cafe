@@ -123,7 +123,9 @@
 }
 .loyalty-form input {
   flex: 1 1 200px;
-  min-height: var(--control-h);
+  /* Editorial ground (the fill band self-declares data-surface="editorial" at index.astro:162):
+     2B freezes every editorial value but §5's ten, and G1 fails the phase on an 11th move. */
+  min-height: 46px;
   padding: 0.55rem 0.9rem;
   border-radius: var(--r-md);
   border: 1px solid rgba(244, 239, 230, 0.4);
