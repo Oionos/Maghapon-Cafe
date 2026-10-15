@@ -82,7 +82,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
+  transition: background var(--dur-ui), color var(--dur-ui), transform var(--dur-ui) var(--ease-out);
 }
 .chip:hover {
   background: rgba(187, 61, 3, 0.08);
@@ -265,7 +265,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-xl);
   padding: var(--space-5);
-  transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
+  transition: transform var(--dur-ui) var(--ease-out), box-shadow var(--dur-ui) var(--ease-out), border-color var(--dur-ui) var(--ease-out);
   will-change: transform;
 }
 .info-card:hover {

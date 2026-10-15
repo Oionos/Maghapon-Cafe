@@ -69,7 +69,7 @@
   font-size: 0.92rem;
   font-weight: 600;
   text-decoration: none;
-  transition: background 0.2s, color 0.2s;
+  transition: background var(--dur-ui), color var(--dur-ui);
 }
 .rail-icon {
   flex: 0 0 22px;
@@ -115,7 +115,7 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, transform 160ms var(--ease-out);
+  transition: background var(--dur-ui), color var(--dur-ui), transform 160ms var(--ease-out);
 }
 .rail-toggle:hover {
   background: rgba(187, 61, 3, 0.08);
@@ -167,7 +167,7 @@
   background: var(--cream-0);
   cursor: pointer;
   font-size: 1.1rem;
-  transition: transform 0.2s var(--ease-out), background 0.2s;
+  transition: transform var(--dur-ui) var(--ease-out), background var(--dur-ui);
 }
 .cart-btn:hover {
   background: var(--cream-50);
@@ -324,7 +324,7 @@
   font-size: 0.85rem;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  transition: opacity var(--dur-ui) var(--ease-out), transform var(--dur-ui) var(--ease-out);
   z-index: 70;
 }
 .back-toast.show {

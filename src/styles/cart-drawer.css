@@ -189,7 +189,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s var(--ease-out), color 0.2s, border-color 0.2s, transform 0.2s var(--ease-out);
+  transition: background var(--dur-ui) var(--ease-out), color var(--dur-ui), border-color var(--dur-ui), transform var(--dur-ui) var(--ease-out);
 }
 .opt-pill:hover {
   background: rgba(187, 61, 3, 0.08);

@@ -45,7 +45,7 @@
   color: var(--ink-900);
   font-family: var(--font-ui);
   font-size: 0.95rem;
-  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  transition: border-color var(--dur-ui) var(--ease-out), box-shadow var(--dur-ui) var(--ease-out);
 }
 .field input:focus,
 .field select:focus {
