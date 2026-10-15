@@ -61,7 +61,7 @@
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  min-height: 44px;
+  min-height: var(--control-h);
   padding: 0.6rem 1rem;
   border-radius: var(--r-pill);
   color: var(--ink-700);
@@ -105,7 +105,7 @@
   justify-content: flex-start;
   gap: 0.7rem;
   width: 100%;
-  min-height: 44px;
+  min-height: var(--control-h);
   padding: 0.6rem 1rem;
   border: 0;
   border-radius: var(--r-pill);
@@ -161,7 +161,7 @@
   align-items: center;
   justify-content: center;
   min-width: 44px;
-  min-height: 44px;
+  min-height: var(--control-h);
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--cream-0);
@@ -279,7 +279,7 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-height: 44px;
+  min-height: var(--control-h);
   padding: 0.4rem 0.25rem;
   background: none;
   border: none;

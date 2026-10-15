@@ -826,11 +826,29 @@ export const TOUCH_TARGETS = [
   { file: 'src/styles/menu-card.css', selector: '.tab-btn', props: ['min-height'] },
 ];
 
-export function findTouchTargets(cssFiles, table = TOUCH_TARGETS, floor = TOUCH_FLOOR) {
+// The declared SCAN set: every shipping stylesheet except the three token tiers, which declare
+// values rather than controls. Derived from the cascade's own declared list (CSS_IMPORT_ORDER) so a
+// slice added to `global.css` is scanned without a second edit here, and `style imports` already
+// keeps that list honest against disk. A `row.file` absent from the walked corpus is still a
+// refusal (the file-outside-the-set fixture), so the table's owner column stays reviewable; the
+// size scan spans this whole set, which is what lets a SECOND copy of a selector —
+// `responsive.css`'s `.cart-panel .cart-line-qty button` — be read rather than missed. Pinned by
+// test.
+export const TOUCH_SCAN_FILES = CSS_IMPORT_ORDER.filter(
+  (p) => !p.startsWith('src/styles/tokens/')
+);
+
+export function findTouchTargets(
+  cssFiles,
+  table = TOUCH_TARGETS,
+  floor = TOUCH_FLOOR,
+  scanFiles = TOUCH_SCAN_FILES
+) {
   const failures = [];
+  const scan = cssFiles.filter((f) => scanFiles.includes(f.path));
   for (const row of table) {
-    const file = cssFiles.find((f) => f.path === row.file);
-    if (!file) {
+    const owner = cssFiles.find((f) => f.path === row.file);
+    if (!owner) {
       failures.push({
         path: row.file,
         line: 0,
@@ -838,37 +856,45 @@ export function findTouchTargets(cssFiles, table = TOUCH_TARGETS, floor = TOUCH_
       });
       continue;
     }
-    const text = stripComments(file.text);
     for (const prop of row.props) {
-      // Every declaration of `prop` inside every rule whose selector CONTAINS this one, so a
-      // compound site is read rather than guessed at. `.tab-btn:hover` is a different selector and
-      // is not matched: a hover rule that changes colour must not be able to satisfy or break a
-      // size predicate. `[^}]*` stops at the first block end, which is what keeps `:hover` out.
+      // Every declaration of `prop` inside every rule whose selector ENDS WITH this one immediately
+      // before `{` — the match is unanchored, so `.cart-panel .cart-line-qty button` is read while
+      // `.tab-btn:hover` is not: a `:hover` suffix sits between the target and the brace, and a
+      // hover rule that changes colour must not be able to satisfy or break a size predicate.
+      // `[^}]*` stops at the first block end, which is what keeps the suffix out.
       const re = new RegExp(
         `${row.selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`,
         'g'
       );
-      const found = [...text.matchAll(re)];
-      // Aggregated per prop across every matched rule: a sibling rule that carries no size is
-      // legal, but a prop no matched rule declares has no floor, and that is a refusal.
+      // Aggregated per prop across every matched rule in the whole scan set: a sibling rule that
+      // carries no size is legal, but a prop no matched rule declares has no floor, and that is a
+      // refusal.
       let sized = false;
-      for (const m of found) {
-        const decl = new RegExp(`(^|[;\\s])${prop}:\\s*([^;}]+)`).exec(m[1]);
-        if (!decl) continue; // this matched rule may carry no size; that is legal.
-        sized = true;
-        const px = /^\s*([0-9.]+)px\s*$/.exec(decl[2]);
-        if (!px) {
-          failures.push({
-            path: row.file,
-            line: lineOf(file.text, m.index),
-            text: `${prop}: ${decl[2].trim()} is not a px value — the floor is judged in px`,
-          });
-        } else if (Number(px[1]) < floor) {
-          failures.push({
-            path: row.file,
-            line: lineOf(file.text, m.index),
-            text: `${row.selector} ${prop}: ${px[1]}px is under the ${floor}px touch floor`,
-          });
+      for (const file of scan) {
+        for (const m of stripComments(file.text).matchAll(re)) {
+          const decl = new RegExp(`(^|[;\\s])${prop}:\\s*([^;}]+)`).exec(m[1]);
+          if (!decl) continue; // this matched rule may carry no size; that is legal.
+          sized = true;
+          const value = decl[2].trim();
+          const px = /^([0-9.]+)px$/.exec(value);
+          if (px) {
+            if (Number(px[1]) < floor) {
+              failures.push({
+                path: file.path,
+                line: lineOf(file.text, m.index),
+                text: `${row.selector} ${prop}: ${px[1]}px is under the ${floor}px touch floor`,
+              });
+            }
+          } else if (!/^var\(\s*--control-h\s*\)$/.test(value)) {
+            // 2B: controls read `--control-h` (declared 44), so the token is the second legal floor
+            // form. A bare `var(--space-*)` is not: it resolves to a spacing step, not the control
+            // height, and the refusal says so rather than converting it silently.
+            failures.push({
+              path: file.path,
+              line: lineOf(file.text, m.index),
+              text: `${prop}: ${value} is not a px value or var(--control-h)`,
+            });
+          }
         }
       }
       if (!sized) {

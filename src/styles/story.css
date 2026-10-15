@@ -40,10 +40,10 @@
 }
 .search-input {
   width: 100%;
-  min-height: 46px;
+  min-height: var(--control-h);
   padding: 0.55rem 0.9rem 0.55rem 46px;
   border-radius: var(--r-md);
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-ui);
   background: var(--paper);
   color: var(--ink-900);
   font-family: var(--font-ui);
@@ -70,7 +70,7 @@
 }
 .chip {
   flex: 0 0 auto;
-  min-height: 44px;
+  min-height: var(--control-h);
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 1.1rem;

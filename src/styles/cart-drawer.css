@@ -51,7 +51,7 @@
 }
 .drawer-close {
   min-width: 44px;
-  min-height: 44px;
+  min-height: var(--control-h);
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--cream-50);
@@ -179,9 +179,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
+  min-height: var(--control-h);
   padding: 0.5rem 1.1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-ui);
   border-radius: var(--r-pill);
   background: var(--cream-0);
   color: var(--ink-700);
@@ -228,7 +228,7 @@
 }
 .qty-btn {
   min-width: 44px;
-  min-height: 44px;
+  min-height: var(--control-h);
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--cream-50);
@@ -272,7 +272,7 @@
 }
 .cart-line-qty button {
   min-width: 44px;
-  min-height: 44px;
+  min-height: var(--control-h);
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--cream-50);

@@ -37,10 +37,10 @@
 }
 .field input,
 .field select {
-  min-height: 46px;
+  min-height: var(--control-h);
   padding: 0.55rem 0.8rem;
   border-radius: var(--r-md);
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-ui);
   background: var(--paper);
   color: var(--ink-900);
   font-family: var(--font-ui);
@@ -54,6 +54,10 @@
   border-color: var(--rust-600);
   box-shadow: var(--focus-halo);
 }
+/* Bug (a): the loyalty inputs are bare children of .loyalty-form (index.astro:172-173), not
+   `.field` descendants, so index.astro:250's invalid-state writer had no styled rule. The
+   loyalty selector rides in this same group, declaration body unchanged. */
+.loyalty-form input[aria-invalid="true"],
 .field input[aria-invalid="true"],
 .field select[aria-invalid="true"] {
   border-color: #c0392b;
@@ -119,7 +123,7 @@
 }
 .loyalty-form input {
   flex: 1 1 200px;
-  min-height: 46px;
+  min-height: var(--control-h);
   padding: 0.55rem 0.9rem;
   border-radius: var(--r-md);
   border: 1px solid rgba(244, 239, 230, 0.4);

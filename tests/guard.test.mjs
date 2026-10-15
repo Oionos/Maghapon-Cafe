@@ -29,6 +29,7 @@ import {
   TMP_READ_CAP,
   TONE_TAG_TOTAL,
   TOUCH_FLOOR,
+  TOUCH_SCAN_FILES,
   TOUCH_TARGETS,
   TRANSITION_NAMES,
   walk,
@@ -1495,7 +1496,7 @@ test('touch targets refuses a non-px floor instead of converting it', () => {
     {
       path: 'src/styles/button.css',
       line: 1,
-      text: 'min-height: 2.5rem is not a px value — the floor is judged in px',
+      text: 'min-height: 2.5rem is not a px value or var(--control-h)',
     },
   ]);
 });
@@ -1510,4 +1511,68 @@ test('touch targets refuses a table row naming a file outside the CSS set', () =
       text: 'touch table names a file not in the CSS set',
     },
   ]);
+});
+
+// ---- Phase 2B Task 8: the widened predicate and the widened scan --------------------------------
+// The predicate's SECOND legal floor form and the scan's declared file set each get a fixture the
+// OTHER shape cannot produce — Ruling AL's mutant-kill requirement. The real tree is the accept for
+// both (test 1 above walks it), so these carry the refusals and the second-copy case that the
+// pre-2B scan read as [].
+const ctrlH = (selector, value) => ({
+  path: 'src/styles/cart-drawer.css',
+  text: `${selector} {\n  min-width: 44px;\n  min-height: ${value};\n}`,
+});
+
+test('touch targets accepts var(--control-h) as a control floor', () => {
+  const css = touchSet();
+  css[0] = ctrlH('.cart-line-qty button', 'var(--control-h)');
+  assert.deepEqual(findTouchTargets(css), []);
+});
+
+test('touch targets refuses a bare var(--space-*) floor — the token is not a wildcard', () => {
+  const css = touchSet();
+  css[0] = ctrlH('.cart-line-qty button', 'var(--space-4)');
+  assert.deepEqual(findTouchTargets(css), [
+    {
+      path: 'src/styles/cart-drawer.css',
+      line: 1,
+      text: 'min-height: var(--space-4) is not a px value or var(--control-h)',
+    },
+  ]);
+});
+
+test('touch targets scans the declared file set — a second copy is judged where it lives', () => {
+  // The row's declared owner is cart-drawer.css, whose copy is legal; the under-floor copy lives
+  // in responsive.css. The pre-2B scan read only the owner, so this fixture returned [] and the
+  // live omission (`responsive.css`'s `.cart-panel .cart-line-qty button`) was invisible.
+  const css = touchSet();
+  css[0] = ctrlH('.cart-line-qty button', '44px');
+  css.push({
+    path: 'src/styles/responsive.css',
+    text: [
+      '.cart-panel .cart-line-qty button {',
+      '  min-width: 44px;',
+      '  min-height: 40px;',
+      '}',
+    ].join('\n'),
+  });
+  assert.deepEqual(findTouchTargets(css), [
+    {
+      path: 'src/styles/responsive.css',
+      line: 1,
+      text: '.cart-line-qty button min-height: 40px is under the 44px touch floor',
+    },
+  ]);
+});
+
+test('touch targets pins its declared scan set', () => {
+  // Derived from the cascade's own list, so it cannot drift from it; the exclusion is the token
+  // tiers, and responsive.css (the live second copy) must be inside it.
+  assert.equal(TOUCH_SCAN_FILES.length, 14);
+  assert.ok(TOUCH_SCAN_FILES.includes('src/styles/responsive.css'));
+  assert.ok(!TOUCH_SCAN_FILES.some((p) => p.startsWith('src/styles/tokens/')));
+  assert.deepEqual(
+    TOUCH_SCAN_FILES,
+    CSS_IMPORT_ORDER.filter((p) => !p.startsWith('src/styles/tokens/'))
+  );
 });

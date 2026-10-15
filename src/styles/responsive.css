@@ -158,7 +158,7 @@
 }
 .cart-panel .cart-line-qty button {
   min-width: 44px;
-  min-height: 44px;
+  min-height: var(--control-h);
   font-size: 1.1rem;
 }
 .cart-panel-foot {
