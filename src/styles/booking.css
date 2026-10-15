@@ -139,7 +139,8 @@
 }
 .loyalty-form .form-success {
   flex-basis: 100%;
-  background: rgba(107, 143, 46, 0.25);
+  /* Editorial ground (the fill band): frozen (GC3) — §5's ten are 2B's only moves. */
+  background: rgba(128, 160, 64, 0.25);
   border-color: var(--matcha-600);
   color: var(--cream-0);
 }

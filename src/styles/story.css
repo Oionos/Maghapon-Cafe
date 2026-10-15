@@ -161,7 +161,8 @@
 .eyebrow-pill {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  /* Editorial ground: frozen (GC3) — §5's ten are 2B's only editorial moves. */
+  gap: 0.4rem;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.18em;

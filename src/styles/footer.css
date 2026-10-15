@@ -16,7 +16,8 @@
 .footer-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  /* Editorial ground (the footer self-declares it): frozen (GC3) — §5's ten are 2B's only moves. */
+  gap: 0.6rem;
   margin-bottom: 0.8rem;
 }
 .footer-brand img {
@@ -50,7 +51,8 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--space-2);
+  /* Editorial ground (the footer self-declares it): frozen (GC3) — §5's ten are 2B's only moves. */
+  gap: 0.6rem;
   padding-top: 1.4rem;
   font-size: 0.82rem;
   opacity: 0.7;
