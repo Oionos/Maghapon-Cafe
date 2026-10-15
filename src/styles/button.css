@@ -28,7 +28,7 @@
 .btn-primary:hover {
   background: var(--ink-900);
   border-color: var(--ink-900);
-  box-shadow: var(--elev-float);
+  box-shadow: var(--elev-raise);
 }
 .btn-outline {
   border-color: var(--line-light);

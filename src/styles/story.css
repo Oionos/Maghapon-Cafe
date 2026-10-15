@@ -228,7 +228,7 @@
   aspect-ratio: 4 / 5;
   object-fit: cover;
   border-radius: var(--r-xl);
-  box-shadow: var(--tmp-shadow-card);
+  box-shadow: var(--elev-float);
 }
 .story-copy p {
   font-size: 1.05rem;
@@ -270,7 +270,7 @@
 }
 .info-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--elev-float);
+  box-shadow: var(--elev-sheet);
   border-color: var(--line-strong);
 }
 .info-card h3 {

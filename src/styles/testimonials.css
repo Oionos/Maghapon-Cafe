@@ -31,7 +31,7 @@
 }
 .testimonial-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--elev-float);
+  box-shadow: var(--elev-sheet);
   border-color: var(--line-strong);
 }
 .testimonial-card blockquote {

@@ -171,7 +171,7 @@
 }
 .cart-btn:hover {
   background: var(--cream-50);
-  box-shadow: var(--tmp-shadow-card);
+  box-shadow: var(--elev-raise);
 }
 .cart-count {
   position: absolute;
@@ -223,10 +223,10 @@
   gap: 0.6rem;
 }
 .global-controls .status-pill {
-  box-shadow: var(--tmp-shadow-card);
+  box-shadow: var(--elev-card);
 }
 .global-controls .cart-btn {
-  box-shadow: 0 4px 14px rgba(64, 0, 0, 0.14);
+  box-shadow: var(--elev-card);
 }
 
 /* ---- Mobile compact top bar (≤767px) ---- */
