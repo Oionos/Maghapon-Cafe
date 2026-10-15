@@ -9,7 +9,7 @@
   position: relative;
   background: var(--cream-0);
   border: 1px solid var(--line);
-  padding: 1.6rem;
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;

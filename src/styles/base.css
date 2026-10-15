@@ -78,7 +78,7 @@ em {
 :focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--r-xs);
 }
 [hidden] {
   display: none !important;
@@ -91,7 +91,7 @@ em {
   padding: 0.75rem 1.25rem;
   background: var(--ink-900);
   color: var(--cream-0);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-weight: 700;
   text-decoration: none;
 }

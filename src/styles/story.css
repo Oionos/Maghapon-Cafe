@@ -44,7 +44,7 @@
   padding: 0.55rem 0.9rem 0.55rem 46px;
   border-radius: var(--r-md);
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--paper);
   color: var(--ink-900);
   font-family: var(--font-ui);
   font-size: 0.95rem;
@@ -60,7 +60,7 @@
 }
 .chip-row {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   overflow-x: auto;
   scrollbar-width: none;
   padding: 0.25rem 0 0.5rem;
@@ -74,7 +74,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 1.1rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--line);
   background: var(--cream-0);
   color: var(--ink-700);
@@ -96,7 +96,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
   margin: 1.6rem 0 1rem;
 }
 .featured-head h2 {
@@ -161,7 +161,7 @@
 .eyebrow-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-2);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -169,7 +169,7 @@
   color: var(--ink-900);
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.35rem 0.75rem;
 }
 .eyebrow-light {
@@ -264,7 +264,7 @@
   background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--r-xl);
-  padding: 1.6rem;
+  padding: var(--space-5);
   transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
   will-change: transform;
 }

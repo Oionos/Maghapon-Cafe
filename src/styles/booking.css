@@ -17,18 +17,18 @@
   background: var(--cream-0);
   border: 1px solid var(--line);
   border-radius: var(--radius-container);
-  padding: 1.5rem;
+  padding: var(--card-pad);
   margin-top: 1.4rem;
 }
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 .field label {
   font-size: 0.82rem;
@@ -41,7 +41,7 @@
   padding: 0.55rem 0.8rem;
   border-radius: var(--r-md);
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--paper);
   color: var(--ink-900);
   font-family: var(--font-ui);
   font-size: 0.95rem;

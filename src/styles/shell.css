@@ -16,7 +16,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   padding: 1.25rem 1rem;
   background: var(--cream-0);
   border-right: 1px solid var(--line);
@@ -25,7 +25,7 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2);
   color: var(--ink-900);
   font-family: var(--font-display);
   font-weight: 700;
@@ -36,7 +36,7 @@
   text-decoration: none;
 }
 .brand img {
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   width: 40px;
   height: 40px;
 }
@@ -54,7 +54,7 @@
 .rail-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   margin-top: 1.25rem;
 }
 .rail-nav a {
@@ -63,7 +63,7 @@
   gap: 0.7rem;
   min-height: 44px;
   padding: 0.6rem 1rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   color: var(--ink-700);
   font-family: var(--font-ui);
   font-size: 0.92rem;
@@ -108,7 +108,7 @@
   min-height: 44px;
   padding: 0.6rem 1rem;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--ink-700);
   font-family: var(--font-ui);
@@ -133,13 +133,13 @@
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--space-2);
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--ink-700);
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.35rem 0.8rem;
   white-space: nowrap;
 }
@@ -180,7 +180,7 @@
   min-width: 20px;
   height: 20px;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--rust-600);
   color: var(--cream-0);
   font-size: 0.72rem;
@@ -220,7 +220,7 @@
   z-index: 60; /* above toolbars (50) and sticky tabs (40); below tab-bar (80) and drawer (100) */
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2);
 }
 .global-controls .status-pill {
   box-shadow: var(--elev-card);
@@ -238,7 +238,7 @@
   min-height: var(--header-h);
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
   padding: 0 1rem;
   background: rgba(var(--tmp-chrome-glass-rgb), 0.92);
   backdrop-filter: blur(10px);
@@ -247,7 +247,7 @@
 .mobile-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2);
   flex: 0 0 auto;
 }
 .mobile-status {
@@ -318,7 +318,7 @@
   bottom: calc(var(--header-h) + 72px);
   transform: translate(-50%, 8px);
   padding: 0.6rem 1rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--ink-700);
   color: var(--cream-0);
   font-size: 0.85rem;

@@ -41,7 +41,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
   padding: 1.1rem 1.4rem;
   border-bottom: 1px solid var(--line);
 }
@@ -64,10 +64,10 @@
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1.4rem;
+  padding: var(--card-pad);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .drawer-empty {
   text-align: center;
@@ -75,7 +75,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .empty-owl {
   width: 96px;
@@ -103,7 +103,7 @@
 /* config view */
 .config-item {
   display: flex;
-  gap: 0.9rem;
+  gap: var(--space-4);
   align-items: flex-start;
 }
 .config-avatar {
@@ -144,12 +144,12 @@
 .opt-list {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-2);
 }
 .opt {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2);
   padding: 0.55rem 0.6rem;
   border-radius: var(--r-md);
   cursor: pointer;
@@ -172,17 +172,17 @@
 .opt-list--pills {
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .opt-pill {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-2);
   min-height: 44px;
   padding: 0.5rem 1.1rem;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--cream-0);
   color: var(--ink-700);
   font-family: var(--font-ui);
@@ -224,7 +224,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .qty-btn {
   min-width: 44px;
@@ -268,7 +268,7 @@
 .cart-line-qty {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .cart-line-qty button {
   min-width: 44px;
@@ -320,12 +320,12 @@
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .checkout-line {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
   font-size: 0.9rem;
 }
 .checkout-line span:last-child {
