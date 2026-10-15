@@ -51,11 +51,11 @@
   margin: 3rem 0 4rem;
   padding: 1.6rem 1.8rem;
   border-radius: var(--radius-container);
-  background: var(--matcha-600);
-  color: #f6f8ef;
+  background: var(--matcha-700);
+  color: var(--cream-0);
 }
 .off-menu-note .eyebrow {
-  color: #eef3dc;
+  color: var(--cream-0);
 }
 .off-menu-note p {
   margin-bottom: 0.4rem;

@@ -49,7 +49,7 @@
 .badge-seasonal {
   top: 0.7rem;
   left: 0.7rem;
-  background: var(--matcha-600);
+  background: var(--matcha-700);
 }
 .badge-star {
   top: 0.7rem;
@@ -63,7 +63,7 @@
   left: 0.7rem;
   background: var(--cream-0);
   border: 1px solid var(--matcha-600);
-  color: var(--matcha-600);
+  color: var(--matcha-700);
 }
 @keyframes pulse {
   0%,

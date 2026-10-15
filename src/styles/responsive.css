@@ -315,7 +315,7 @@
 .my-status.done {
   background: rgba(107, 143, 46, 0.14);
   border: 1px solid var(--matcha-600);
-  color: var(--matcha-600);
+  color: var(--matcha-700);
 }
 
 /* ============================================================

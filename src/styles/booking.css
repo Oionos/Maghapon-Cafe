@@ -88,7 +88,7 @@
   margin-top: 1rem;
   padding: 0.9rem 1rem;
   border-radius: var(--r-md);
-  background: rgba(128, 160, 64, 0.18);
+  background: rgba(107, 143, 46, 0.18);
   border: 1px solid var(--matcha-600);
   color: var(--ink-900);
   font-size: 0.92rem;
@@ -139,7 +139,7 @@
 }
 .loyalty-form .form-success {
   flex-basis: 100%;
-  background: rgba(128, 160, 64, 0.25);
+  background: rgba(107, 143, 46, 0.25);
   border-color: var(--matcha-600);
   color: var(--cream-0);
 }
