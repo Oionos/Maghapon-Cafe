@@ -30,8 +30,9 @@ Thumbs.db
 
 # Docs
 AGENTS.md
-DESIGN.md
 PRODUCT.md
+# DESIGN.md is NOT ignored — the guard's `token drift` check reads its hexes against
+# src/styles/tokens/1-primitive.css, which cannot fire while the file is untracked.
 
 # Documentation (specs/design docs — not committed unless part of production)
 docs/
