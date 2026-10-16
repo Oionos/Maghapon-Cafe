@@ -25,6 +25,23 @@
     scroll-margin-top: var(--header-h);
   }
 }
+
+/* F-9C-1 — the two-column booking pair is deferred past this band. The 220px rail leaves the
+   column ~471px at a 768px viewport, while `.booking-grid`'s measured min-content is
+   617.016px (the form card's 517.188px + the 2.4rem gap + the container padding) and the
+   pair only fits from a 855px viewport, so it overflowed `/booking` by 53px. The fields give
+   up their intrinsic width so the single column fits too. Scoped to `.booking-grid`:
+   `.form-grid` is shared with the cart drawer (CartDrawer.astro:258) and the cart panel
+   (CartPanel.astro:123), which must not change here. */
+@media (min-width: 768px) and (max-width: 854px) {
+  .booking-grid {
+    grid-template-columns: 1fr;
+  }
+  .booking-grid .form-grid > * {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 767px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -59,17 +76,17 @@
     grid-template-columns: 1fr;
   }
   .hero-meta {
-    gap: 1rem;
+    gap: var(--space-4);
   }
 }
 @media (max-width: 360px) {
   .mobile-topbar {
-    gap: 0.6rem;
+    gap: var(--space-2);
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
   .mobile-topbar .brand {
-    gap: 0.45rem;
+    gap: var(--space-2);
   }
   .mobile-topbar .brand img {
     width: 30px;
@@ -110,7 +127,7 @@
   flex-direction: column;
   background: var(--cream-0);
   border-left: 1px solid var(--line);
-  box-shadow: -12px 0 32px rgba(64, 0, 0, 0.08); /* warm, ambient — a column, not an overlay layer */
+  box-shadow: -12px 0 32px rgba(42, 18, 6, 0.08); /* warm, ambient — a column, not an overlay layer */
 }
 .cart-panel-head {
   display: flex;
@@ -146,26 +163,26 @@
 .cart-panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1.4rem;
+  padding: var(--card-pad);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .cart-panel-lines {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .cart-panel .cart-line-qty button {
   min-width: 44px;
-  min-height: 44px;
+  min-height: var(--control-h);
   font-size: 1.1rem;
 }
 .cart-panel-foot {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: var(--space-4);
   padding-top: 1rem;
   border-top: 1px solid var(--line);
 }
@@ -175,7 +192,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .cart-panel-empty p {
   opacity: 0.8;
@@ -256,9 +273,9 @@
     width: 100%;
     height: auto;
     max-height: 85vh;
-    border-radius: var(--tmp-radius-container) var(--tmp-radius-container) 0 0;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
     transform: translateY(110%);
-    box-shadow: 0 -20px 50px rgba(42, 18, 6, 0.3);
+    box-shadow: 0 -20px 50px rgba(42, 18, 6, 0.28);
   }
   .drawer.open .drawer-panel {
     transform: translateY(0);
@@ -274,9 +291,9 @@
   gap: 1.2rem 2rem;
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   padding: clamp(1.5rem, 4vw, 2.2rem);
-  box-shadow: var(--tmp-shadow-card);
+  box-shadow: var(--elev-card);
 }
 .booking-cta h2 {
   margin-bottom: 0.3em;
@@ -308,14 +325,14 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 0.35rem 0.8rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--rust-600);
   color: var(--cream-0);
 }
 .my-status.done {
   background: rgba(107, 143, 46, 0.14);
   border: 1px solid var(--matcha-600);
-  color: var(--matcha-600);
+  color: var(--matcha-700);
 }
 
 /* ============================================================
@@ -334,7 +351,7 @@
 .skeleton-card {
   height: 340px;
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
 }
 .empty-owl {
   border-radius: 16px;
@@ -342,23 +359,31 @@
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
 }
-/* spotlight border on hover */
-.menu-card,
+/* spotlight border on hover — §6.5, one rule per ground list */
+.menu-card {
+  position: relative;
+}
 .info-card,
 .testimonial-card {
   position: relative;
 }
-.menu-card:hover,
+.menu-card:hover {
+  border-color: rgba(187, 61, 3, 0.22);
+}
 .info-card:hover {
   border-color: rgba(187, 61, 3, 0.22);
 }
-/* tabular nums for all price displays */
+/* tabular nums for all price displays — §6.5, one rule per ground list.
+   `.price` has no markup site at all (§6.6 item 7) and stays in the app list until that
+   deletion is approved. */
 .price,
 .price-chip b,
 .cart-line-price,
 .cart-total b,
 .order-total b,
-.info-big,
 .admin-stat b {
+  font-variant-numeric: tabular-nums;
+}
+.info-big {
   font-variant-numeric: tabular-nums;
 }

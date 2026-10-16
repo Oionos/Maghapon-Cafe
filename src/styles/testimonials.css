@@ -9,13 +9,12 @@
   position: relative;
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
-  padding: 1.6rem;
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
-  border-radius: 20px;
+  transition: transform var(--dur-ui) var(--ease-out), box-shadow var(--dur-ui) var(--ease-out), border-color var(--dur-ui) var(--ease-out);
+  border-radius: var(--r-xl);
 }
 .testimonial-card::after {
   content: "";
@@ -32,8 +31,8 @@
 }
 .testimonial-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--elev-float);
-  border-color: var(--tmp-line-strong);
+  box-shadow: var(--elev-sheet);
+  border-color: var(--line-strong);
 }
 .testimonial-card blockquote {
   margin: 0;

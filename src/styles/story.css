@@ -40,11 +40,11 @@
 }
 .search-input {
   width: 100%;
-  min-height: 46px;
+  min-height: var(--control-h);
   padding: 0.55rem 0.9rem 0.55rem 46px;
   border-radius: var(--r-md);
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 1px solid var(--border-ui);
+  background: var(--paper);
   color: var(--ink-900);
   font-family: var(--font-ui);
   font-size: 0.95rem;
@@ -60,7 +60,7 @@
 }
 .chip-row {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   overflow-x: auto;
   scrollbar-width: none;
   padding: 0.25rem 0 0.5rem;
@@ -70,11 +70,11 @@
 }
 .chip {
   flex: 0 0 auto;
-  min-height: 44px;
+  min-height: var(--control-h);
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 1.1rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--line);
   background: var(--cream-0);
   color: var(--ink-700);
@@ -82,7 +82,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
+  transition: background var(--dur-ui), color var(--dur-ui), transform var(--dur-ui) var(--ease-out);
 }
 .chip:hover {
   background: rgba(187, 61, 3, 0.08);
@@ -96,7 +96,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
   margin: 1.6rem 0 1rem;
 }
 .featured-head h2 {
@@ -139,7 +139,7 @@
   margin: 1.5rem 0 2rem;
   padding: 2rem;
   border: 1px dashed var(--line);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--radius-container);
   background: var(--cream-0);
   text-align: center;
   opacity: 0.85;
@@ -161,6 +161,7 @@
 .eyebrow-pill {
   display: inline-flex;
   align-items: center;
+  /* Editorial ground: frozen (GC3) — §5's ten are 2B's only editorial moves. */
   gap: 0.4rem;
   font-size: 10px;
   font-weight: 700;
@@ -169,7 +170,7 @@
   color: var(--ink-900);
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.35rem 0.75rem;
 }
 .eyebrow-light {
@@ -227,8 +228,8 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  border-radius: var(--tmp-radius-container);
-  box-shadow: var(--tmp-shadow-card);
+  border-radius: var(--r-xl);
+  box-shadow: var(--elev-float);
 }
 .story-copy p {
   font-size: 1.05rem;
@@ -263,15 +264,15 @@
 .info-card {
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
-  padding: 1.6rem;
-  transition: transform 0.7s var(--ease-out), box-shadow 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
+  border-radius: var(--r-xl);
+  padding: var(--space-5);
+  transition: transform var(--dur-ui) var(--ease-out), box-shadow var(--dur-ui) var(--ease-out), border-color var(--dur-ui) var(--ease-out);
   will-change: transform;
 }
 .info-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--elev-float);
-  border-color: var(--tmp-line-strong);
+  box-shadow: var(--elev-sheet);
+  border-color: var(--line-strong);
 }
 .info-card h3 {
   font-size: 1rem;

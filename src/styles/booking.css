@@ -10,25 +10,25 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  border-radius: var(--tmp-radius-container);
-  box-shadow: var(--tmp-shadow-card);
+  border-radius: var(--radius-container);
+  box-shadow: var(--elev-card);
 }
 .form-card {
   background: var(--cream-0);
   border: 1px solid var(--line);
-  border-radius: var(--tmp-radius-container);
-  padding: 1.5rem;
+  border-radius: var(--radius-container);
+  padding: var(--card-pad);
   margin-top: 1.4rem;
 }
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 .field label {
   font-size: 0.82rem;
@@ -37,23 +37,27 @@
 }
 .field input,
 .field select {
-  min-height: 46px;
+  min-height: var(--control-h);
   padding: 0.55rem 0.8rem;
   border-radius: var(--r-md);
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 1px solid var(--border-ui);
+  background: var(--paper);
   color: var(--ink-900);
   font-family: var(--font-ui);
   font-size: 0.95rem;
-  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  transition: border-color var(--dur-ui) var(--ease-out), box-shadow var(--dur-ui) var(--ease-out);
 }
 .field input:focus,
 .field select:focus {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
   border-color: var(--rust-600);
-  box-shadow: 0 0 0 4px rgba(214, 135, 62, 0.12);
+  box-shadow: var(--focus-halo);
 }
+/* Bug (a): the loyalty inputs are bare children of .loyalty-form (index.astro:172-173), not
+   `.field` descendants, so index.astro:250's invalid-state writer had no styled rule. The
+   loyalty selector rides in this same group, declaration body unchanged. */
+.loyalty-form input[aria-invalid="true"],
 .field input[aria-invalid="true"],
 .field select[aria-invalid="true"] {
   border-color: #c0392b;
@@ -84,7 +88,7 @@
   margin-top: 1rem;
   padding: 0.9rem 1rem;
   border-radius: var(--r-md);
-  background: rgba(128, 160, 64, 0.18);
+  background: rgba(107, 143, 46, 0.18);
   border: 1px solid var(--matcha-600);
   color: var(--ink-900);
   font-size: 0.92rem;
@@ -101,7 +105,7 @@
   gap: 1.6rem;
   align-items: center;
   background: linear-gradient(120deg, var(--ink-900) 0%, var(--rust-600) 100%);
-  border-radius: var(--tmp-radius-container);
+  border-radius: var(--r-xl);
   padding: clamp(1.8rem, 5vw, 3rem);
   color: var(--cream-0);
 }
@@ -119,6 +123,8 @@
 }
 .loyalty-form input {
   flex: 1 1 200px;
+  /* Editorial ground (the fill band self-declares data-surface="editorial" at index.astro:162):
+     2B freezes every editorial value but §5's ten, and G1 fails the phase on an 11th move. */
   min-height: 46px;
   padding: 0.55rem 0.9rem;
   border-radius: var(--r-md);
@@ -133,6 +139,7 @@
 }
 .loyalty-form .form-success {
   flex-basis: 100%;
+  /* Editorial ground (the fill band): frozen (GC3) — §5's ten are 2B's only moves. */
   background: rgba(128, 160, 64, 0.25);
   border-color: var(--matcha-600);
   color: var(--cream-0);
